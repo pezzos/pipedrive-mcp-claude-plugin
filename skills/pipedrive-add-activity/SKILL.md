@@ -1,20 +1,17 @@
 ---
 name: pipedrive-add-activity
-description: Use with the custom Pipedrive MCP tools when the user asks to add, schedule, plan, or log a Pipedrive activity such as a task, follow-up, call, meeting, deadline, or email to do for a contact, company, deal, lead, or project. Do not use the official Pipedrive connector.
+description: Use when the user asks in natural language to add, schedule, plan, or log a Pipedrive activity such as a task, follow-up, call, meeting, deadline, or email to do for a contact, company, deal, or lead.
 ---
 
 # Pipedrive Add Activity
 
-This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
-tools whose names start with `pipedrive_`, such as `pipedrive_health_check` and
-`pipedrive_create_activity`. Do not use Anthropic's official Pipedrive connector,
-generic Pipedrive integrations, browser automation, or direct web/API calls.
+## Required Tooling
 
-If no `pipedrive_` tools are available, stop and tell the operator that the
-Pipedrive MCP desktop extension is not connected. Do not continue with the
-official Pipedrive connector.
+Requires Pipedrive MCP. Use only `pipedrive_*` tools. Do not use the official Pipedrive connector. If no `pipedrive_*` tools are available, stop and tell the user that the Pipedrive MCP connection must be configured before this skill can be used.
 
 Use this skill for requests like "ajoute une relance demain pour Jean", "prévois un appel avec Acme vendredi", "mets un mail à faire sur l'affaire Dupont", or "planifie une réunion avec ce prospect".
+
+If the user asks Claude to compose or refine email content rather than only schedule an email activity, use the Pipedrive email activity workflow.
 
 ## Interpret The Request
 
@@ -38,7 +35,7 @@ If the type, target, or due date is ambiguous, ask a short clarification before 
 
 ## Resolve Targets
 
-Search before writing. Resolve the referenced person, organization, deal, lead, or project with read-only tools. If there are multiple matches, present a short disambiguation list with names and IDs. Do not write against an ambiguous record.
+Search before writing. Resolve the referenced person, organization, deal, or lead with read-only tools. If there are multiple matches, present a short disambiguation list with names and IDs. Do not write against an ambiguous record.
 
 If a dictated name fails to match, use the Pipedrive dictation alias workflow before giving up.
 
@@ -48,8 +45,8 @@ Use `pipedrive_create_activity`.
 
 Always:
 
-1. Build the activity with linked IDs: `person_id`, `org_id`, `deal_id`, `lead_id`, or project-related context when available.
-2. Call the tool first with `dry_run=true` and `validate_links=true` when links are present.
+1. Build the activity with linked IDs: `person_id`, `org_id`, `deal_id`, or `lead_id`.
+2. Call the tool first with `dry_run=true` and `validate_links=true` when any linked record ID is present in the payload.
 3. Show the proposed subject, type, date/time, note, and linked records.
 4. Ask for explicit approval before calling again with `dry_run=false`.
 

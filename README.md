@@ -1,227 +1,70 @@
 # Pipedrive MCP
 
-This repository ships the Claude Cowork skills for **Pipedrive MCP** and the
-Claude Desktop Extension (`.mcpb`) that installs the local MCP server.
+This repository publishes the Pipedrive MCP delivery bundle for Claude.
 
-Use both pieces together:
+It contains two separate pieces:
 
-- Install `pipedrive-mcp-0.1.1.mcpb` in Claude Desktop for the actual local MCP
-  connector and editable API-key settings.
-- Import this repository as a Claude personal plugin marketplace for Cowork
-  skills. The repository plugin is intentionally skills-only; it does not define
-  its own MCP server because Claude's repository-plugin UI does not reliably
-  render editable connector configuration fields.
+- `pipedrive-mcp-0.1.3.mcpb`: Claude Desktop Extension that installs the local
+  MCP connector and exposes editable settings for Pipedrive credentials.
+- `Pipedrive MCP` marketplace plugin: Claude Cowork skills that route natural
+  language CRM requests to `pipedrive_*` tools.
 
-## What It Provides
+Use both pieces together. The repository plugin is skills-only on purpose. It
+does not define its own connector because the Cowork plugin Connectors tab is a
+read-only view and is not the right place for API-key entry.
 
-- Read tools for deals, persons, organizations, leads, pipelines, stages,
-  activities, notes, products, deal relationships, users, project boards,
-  projects, project tasks, and custom field discovery.
-- Write tools for creating and updating commercial records when
-  `PIPEDRIVE_ENABLE_WRITES=true`.
-- Mailbox read/link tools only when both `PIPEDRIVE_ENABLE_WRITES=true` and
-  `PIPEDRIVE_ENABLE_MAILBOX_TOOLS=true`. Mailbox access may require an OAuth
-  access token with the right Pipedrive scopes.
-- Delete tools only when both `PIPEDRIVE_ENABLE_WRITES=true` and
-  `PIPEDRIVE_ENABLE_DELETE_TOOLS=true`.
-- Email activities with `type="email"` linked to a person, deal, organization
-  or lead. These are activities, not Mailbox drafts.
-- Dry-run support on write tools through `dry_run=true`, which is the default.
+## Install The Connector
 
-Mailbox draft creation, email sending, OAuth refresh, file upload/download,
-reports, automations, webhooks, and remote hosting are not implemented in this
-version.
-
-## Quick Start
-
-### Claude Desktop Connector With Settings UI
-
-Use the MCPB desktop extension when the operator needs editable settings fields
-for the Pipedrive company domain, API token, and feature flags.
-
-Download `pipedrive-mcp-0.1.1.mcpb` from this repository, then install it in
-Claude Desktop:
+Install `pipedrive-mcp-0.1.3.mcpb` in Claude Desktop:
 
 1. Open Claude Desktop settings.
 2. Go to Extensions.
 3. Open Advanced settings.
 4. Click Install Extension.
-5. Select `pipedrive-mcp-0.1.1.mcpb`.
-6. Fill the Pipedrive configuration fields in Claude's extension settings.
+5. Select `pipedrive-mcp-0.1.3.mcpb`.
+6. Fill the extension settings:
+   - Pipedrive company domain: enter only the company subdomain, not the full
+     URL.
+   - Pipedrive API token, or OAuth access token where required.
+   - Optional write, Mailbox, delete, and timeout settings.
 
-This is the supported Claude Desktop path for API keys. Do not paste API keys
-into a Claude conversation.
+Do not paste API keys into a Claude conversation and do not rely on a local
+`.env` file for client delivery.
 
-### Claude Cowork Plugin Repository
+## Install The Cowork Skills
 
-After the MCPB is installed and configured, add this repository as a personal
-plugin marketplace for Cowork skills:
+After the Desktop Extension is installed and configured, add this repository as
+a personal Claude plugin marketplace:
 
 ```text
 pezzos/pipedrive-mcp-claude-plugin
 ```
 
 Install `Pipedrive MCP` from the Personal tab. This provides the Cowork skills
-only. The actual connector is the desktop extension installed from the `.mcpb`.
+only. The actual connector is the Desktop Extension installed from the `.mcpb`.
 
-After installing or updating either piece, start a new Claude/Cowork session and
-run a smoke test:
+## Smoke Test
+
+Start a new Claude/Cowork session and ask:
 
 ```text
 Use Pipedrive MCP only. Run the pipedrive_health_check tool and report whether
 Pipedrive MCP is connected. Do not use the official Pipedrive connector.
 ```
 
-If Claude says no `pipedrive_` tools are available, the desktop extension is not
-visible to that session. Restart Claude Desktop and start a new session.
+Expected result after settings are filled:
 
-### Updates
+- `token_configured: true`
+- `company_domain_configured: true`
+- `writes_enabled: false` unless explicitly enabled
 
-Repository plugin updates are used for skills and documentation:
+If Claude says no `pipedrive_*` tools are available, restart Claude Desktop and
+start a new Cowork session.
 
-1. Open Customize.
-2. Go to Plugins > Personal.
-3. Open the `pipedrive-mcp-claude-plugin` marketplace menu.
-4. Click "Check for updates".
-5. Update `Pipedrive MCP` when Claude offers a newer version.
+## Contents
 
-Desktop connector updates use a new `.mcpb` file. Keep the extension name
-`pipedrive-mcp` across versions so Claude preserves saved settings. Reinstalling
-a newer `pipedrive-mcp-x.y.z.mcpb` updates the local server while keeping the
-operator's configured API key.
-
-### Development Checkout
-
-For Claude Cowork or Claude Code plugin delivery, build the autonomous plugin
-artifact:
-
-```sh
-npm install
-npm run check
-npm run pack:claude-plugin
-claude plugin validate dist/claude-plugin/pipedrive-mcp
-```
-
-See [Claude Cowork Plugin](docs/CLAUDE_COWORK_PLUGIN.md).
-
-For a plain MCP host or repository checkout:
-
-```sh
-npm install
-cp config.example .env
-# edit .env
-npm run check
-node dist/server.js
-```
-
-Minimal environment:
-
-```sh
-PIPEDRIVE_COMPANY_DOMAIN=your-company
-PIPEDRIVE_API_TOKEN=your-api-token
-PIPEDRIVE_ENABLE_WRITES=false
-PIPEDRIVE_ENABLE_MAILBOX_TOOLS=false
-PIPEDRIVE_ENABLE_DELETE_TOOLS=false
-```
-
-OAuth can be supplied instead of an API token:
-
-```sh
-PIPEDRIVE_ACCESS_TOKEN=your-oauth-access-token
-```
-
-`PIPEDRIVE_ACCESS_TOKEN` takes precedence over `PIPEDRIVE_API_TOKEN` when both
-are configured.
-
-## MCP Host Configuration
-
-Build the server first, then configure the MCP host to run either
-`node dist/server.js` from this repository or the packaged `pipedrive-mcp` bin.
-Claude Desktop examples are below; additional profiles are in
-[MCP client examples](docs/MCP_CLIENT_EXAMPLES.md).
-
-The Claude plugin path is separate from the plain MCP host path. Plugin source
-files live under `plugin/claude/`, and the staged plugin lives under
-`dist/claude-plugin/pipedrive-mcp/`.
-
-## Runtime Configuration
-
-| Variable | Default | Purpose |
-| --- | --- | --- |
-| `PIPEDRIVE_COMPANY_DOMAIN` | unset | Company subdomain used to build `https://<company>.pipedrive.com`. |
-| `PIPEDRIVE_BASE_URL` | derived | Optional explicit base URL. Must be `https://*.pipedrive.com` unless mock URLs are enabled. |
-| `PIPEDRIVE_API_TOKEN` | unset | Pipedrive API token sent as `x-api-token`. |
-| `PIPEDRIVE_ACCESS_TOKEN` | unset | OAuth bearer token. Takes precedence over API token. |
-| `PIPEDRIVE_ENABLE_WRITES` | `false` | Registers CRM write tools when `true`. |
-| `PIPEDRIVE_ENABLE_MAILBOX_TOOLS` | `false` | Registers Mailbox tools when writes are also enabled. |
-| `PIPEDRIVE_ENABLE_DELETE_TOOLS` | `false` | Registers delete tools when writes are also enabled. |
-| `PIPEDRIVE_LOAD_DOTENV` | `true` | Loads local `.env`; set `false` for controlled host environments. |
-| `PIPEDRIVE_REQUEST_TIMEOUT_MS` | `10000` | Fetch timeout for Pipedrive API calls. |
-| `PIPEDRIVE_ALLOW_MOCK_BASE_URL` | `false` | Allows loopback base URLs for mocked tests only. |
-
-Only the local `.env` next to this package is loaded. Parent directory `.env`
-files are ignored.
-
-## Claude Desktop
-
-On macOS, add the server under `mcpServers` in:
-
-```text
-~/Library/Application Support/Claude/claude_desktop_config.json
-```
-
-Repository checkout example:
-
-```json
-{
-  "mcpServers": {
-    "pipedrive": {
-      "command": "node",
-      "args": ["/absolute/path/to/pipedrive-mcp/dist/server.js"],
-      "env": {
-        "PIPEDRIVE_ENABLE_WRITES": "false",
-        "PIPEDRIVE_ENABLE_MAILBOX_TOOLS": "false",
-        "PIPEDRIVE_ENABLE_DELETE_TOOLS": "false",
-        "PIPEDRIVE_LOAD_DOTENV": "true"
-      }
-    }
-  }
-}
-```
-
-Packaged install example:
-
-```json
-{
-  "mcpServers": {
-    "pipedrive": {
-      "command": "pipedrive-mcp",
-      "args": [],
-      "env": {
-        "PIPEDRIVE_COMPANY_DOMAIN": "your-company",
-        "PIPEDRIVE_API_TOKEN": "your-api-token",
-        "PIPEDRIVE_ENABLE_WRITES": "false",
-        "PIPEDRIVE_ENABLE_MAILBOX_TOOLS": "false",
-        "PIPEDRIVE_ENABLE_DELETE_TOOLS": "false",
-        "PIPEDRIVE_LOAD_DOTENV": "false"
-      }
-    }
-  }
-}
-```
-
-Restart Claude Desktop after editing the file.
-
-## Safety Defaults
-
-- CRM write tools are not registered unless `PIPEDRIVE_ENABLE_WRITES=true`.
-- Mailbox tools are not registered unless `PIPEDRIVE_ENABLE_MAILBOX_TOOLS=true` as well.
-- Delete tools are not registered unless `PIPEDRIVE_ENABLE_DELETE_TOOLS=true` as well.
-- Write tools default to `dry_run=true`.
-- Dry-run responses redact common sensitive fields.
-- `validate_links=true` reads linked records before sending a write.
-- API tokens are sent in headers, not URLs, and token-like values are redacted
-  from handled API errors.
-
-See [Operator Runbook](docs/OPERATOR_RUNBOOK.md), [Client Examples](docs/MCP_CLIENT_EXAMPLES.md),
-[Troubleshooting](docs/TROUBLESHOOTING.md), and [API Mapping Notes](docs/API_MAPPING.md).
+- `.claude-plugin/marketplace.json`: private marketplace manifest.
+- `.claude-plugin/plugin.json`: skills-only Cowork plugin manifest.
+- `skills/`: Pipedrive workflow skills.
+- `mcpb/pipedrive-mcp/`: unpacked Desktop Extension source.
+- `pipedrive-mcp-0.1.3.mcpb`: installable Desktop Extension.

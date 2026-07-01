@@ -1,18 +1,13 @@
 ---
 name: pipedrive-add-note
-description: Use with the custom Pipedrive MCP tools when the user asks to add, record, save, or attach information, a note, a memo, a detail, or a meeting/call summary to a Pipedrive contact, company, deal, lead, or activity. Do not use the official Pipedrive connector.
+description: Use when the user asks to add, record, save, or attach information, a note, a memo, a detail, or a meeting/call summary to a Pipedrive contact, company, deal, lead, or activity.
 ---
 
 # Pipedrive Add Note
 
-This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
-tools whose names start with `pipedrive_`, such as `pipedrive_health_check` and
-`pipedrive_create_note`. Do not use Anthropic's official Pipedrive connector,
-generic Pipedrive integrations, browser automation, or direct web/API calls.
+## Required Tooling
 
-If no `pipedrive_` tools are available, stop and tell the operator that the
-Pipedrive MCP desktop extension is not connected. Do not continue with the
-official Pipedrive connector.
+Requires Pipedrive MCP. Use only `pipedrive_*` tools. Do not use the official Pipedrive connector. If no `pipedrive_*` tools are available, stop and tell the user that the Pipedrive MCP connection must be configured before this skill can be used.
 
 Use this skill for requests like "ajoute cette info sur Jean", "note ça sur Acme", "mets ce compte rendu sur l'affaire X", or "garde cette information sur ce prospect".
 

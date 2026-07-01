@@ -1,19 +1,13 @@
 ---
 name: pipedrive-next-action
-description: Use with the custom Pipedrive MCP tools when the user asks what to do next, how to follow up, how to prepare the next step, or which old/overdue Pipedrive tasks or activities should be handled first for a contact, company, deal, lead, or queue. Do not use the official Pipedrive connector.
+description: Use when the user asks what to do next, how to follow up, how to prepare the next step, or which old/overdue Pipedrive tasks or activities should be handled first for a contact, company, deal, lead, or queue.
 ---
 
 # Pipedrive Next Action
 
-This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
-tools whose names start with `pipedrive_`, such as `pipedrive_health_check`,
-`pipedrive_list_activities`, and `pipedrive_search_persons`. Do not use
-Anthropic's official Pipedrive connector, generic Pipedrive integrations,
-browser automation, or direct web/API calls.
+## Required Tooling
 
-If no `pipedrive_` tools are available, stop and tell the operator that the
-Pipedrive MCP desktop extension is not connected. Do not continue with the
-official Pipedrive connector.
+Requires Pipedrive MCP. Use only `pipedrive_*` tools. Do not use the official Pipedrive connector. If no `pipedrive_*` tools are available, stop and tell the user that the Pipedrive MCP connection must be configured before this skill can be used.
 
 Use this skill for requests like "aide-moi à préparer la prochaine action pour Acme", "que dois-je faire avec Jean ?", "quelles relances sont les plus anciennes ?", or "prépare-moi la prochaine tâche sur cette affaire".
 
@@ -27,7 +21,7 @@ Record-focused mode:
 Queue mode:
 
 - The user asks for old, overdue, pending, or priority tasks/activities.
-- List open activities and tasks, focusing on oldest due dates and incomplete work.
+- List open activities and tasks, focusing on earliest due dates and most overdue work first.
 
 ## Gather Context
 
@@ -53,4 +47,4 @@ Summarize:
 
 If the next action is a follow-up email, use the Pipedrive email activity workflow to draft an email-as-activity. If the next action is a call, meeting, task, or deadline, use the Pipedrive add activity workflow.
 
-Do not create, update, mark done, or reschedule anything without the dry-run and explicit approval pattern.
+This skill reads and recommends only. All writes must be performed by the appropriate write skill with dry-run preview and explicit approval.

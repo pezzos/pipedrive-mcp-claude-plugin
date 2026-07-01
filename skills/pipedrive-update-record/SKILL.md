@@ -1,19 +1,13 @@
 ---
 name: pipedrive-update-record
-description: Use with the custom Pipedrive MCP tools when the user explicitly asks to update a specific field or status on a Pipedrive contact, company, deal, lead, project, project task, note, or activity. Do not use the official Pipedrive connector.
+description: Use when the user explicitly asks to update a specific field or status on a Pipedrive contact, company, deal, lead, project, project task, note, or activity.
 ---
 
 # Pipedrive Update Record
 
-This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
-tools whose names start with `pipedrive_`, such as `pipedrive_health_check` and
-the specific `pipedrive_update_*` tool for the target record. Do not use
-Anthropic's official Pipedrive connector, generic Pipedrive integrations,
-browser automation, or direct web/API calls.
+## Required Tooling
 
-If no `pipedrive_` tools are available, stop and tell the operator that the
-Pipedrive MCP desktop extension is not connected. Do not continue with the
-official Pipedrive connector.
+Requires Pipedrive MCP. Use only `pipedrive_*` tools. Do not use the official Pipedrive connector. If no `pipedrive_*` tools are available, stop and tell the user that the Pipedrive MCP connection must be configured before this skill can be used.
 
 Use this skill only when the user clearly names the record and the field or status to change. Examples: "mets le poste de Jean à CEO", "change le téléphone de ce contact", "passe cette affaire en gagné", "mets cette tâche projet comme terminée".
 
@@ -39,8 +33,10 @@ Use the narrowest matching tool:
 - `pipedrive_update_project`
 - `pipedrive_update_task`
 - `pipedrive_update_note`
-- `pipedrive_update_activity`
+- `pipedrive_update_activity` only for explicit non-email field changes that are not completion or rescheduling workflows
 
-Always call first with `dry_run=true` and `validate_links=true` when links are present. Show old value when known, proposed new value, target record ID, and expected impact. Execute with `dry_run=false` only after explicit approval.
+For activity writes, completion and date changes belong to the complete activity workflow. Email activity content belongs to the email activity workflow.
+
+Always call first with `dry_run=true` and `validate_links=true` when any linked record ID is present in the payload. Show old value when known, proposed new value, target record ID, and expected impact. Execute with `dry_run=false` only after explicit approval.
 
 Never delete records from this skill.

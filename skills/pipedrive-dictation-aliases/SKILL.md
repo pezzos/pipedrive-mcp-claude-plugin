@@ -1,18 +1,13 @@
 ---
 name: pipedrive-dictation-aliases
-description: Use with the custom Pipedrive MCP tools when a spoken or dictated contact, company, deal, lead, project, or activity name is not found in Pipedrive, looks phonetically close to another result, or the user corrects a dictated CRM name. Do not use the official Pipedrive connector.
+description: Use when a spoken or dictated contact, company, deal, lead, project, or activity name is not found in Pipedrive, looks phonetically close to another result, or the user corrects a dictated CRM name.
 ---
 
 # Pipedrive Dictation Aliases
 
-This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
-tools whose names start with `pipedrive_`, such as `pipedrive_health_check` and
-`pipedrive_search_persons`. Do not use Anthropic's official Pipedrive connector,
-generic Pipedrive integrations, browser automation, or direct web/API calls.
+## Required Tooling
 
-If no `pipedrive_` tools are available, stop and tell the operator that the
-Pipedrive MCP desktop extension is not connected. Do not continue with the
-official Pipedrive connector.
+Requires Pipedrive MCP. Use only `pipedrive_*` tools. Do not use the official Pipedrive connector. If no `pipedrive_*` tools are available, stop and tell the user that the Pipedrive MCP connection must be configured before this skill can be used.
 
 Use this skill when speech-to-text likely changed a Pipedrive name. Example: "David Lespée" may need to resolve to "David Lespect".
 
@@ -32,6 +27,18 @@ Je retiens pour cette session : "David Lespée" -> "David Lespect" (person_id=12
 ```
 
 Use the corrected CRM record for the rest of the current task.
+
+## Tools
+
+Use read-only search tools:
+
+- `pipedrive_search_persons` for contacts and spoken individual names.
+- `pipedrive_list_organizations` for companies, accounts, and clients.
+- `pipedrive_find_deals` or `pipedrive_search_items` for deals and opportunities.
+- `pipedrive_search_projects` for projects.
+- `pipedrive_list_activities` for existing activities when the user refers to a task, call, meeting, or follow-up.
+
+Prefer person search first for names that sound like people. Prefer organization search first for company-like names.
 
 ## Persistence Limit
 
