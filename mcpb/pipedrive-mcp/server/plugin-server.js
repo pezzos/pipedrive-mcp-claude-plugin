@@ -14263,7 +14263,7 @@ import { fileURLToPath as fileURLToPath3 } from "node:url";
 
 // src/claudeBridge.ts
 import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, normalize } from "node:path";
+import { basename, dirname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 var managedEnvFlag = "PIPEDRIVE_MANAGED_BY_PIPEDRIVE_MCP_EXTENSION";
 function maybeSyncClaudeDesktopConfig(config3, options = {}) {
@@ -14286,7 +14286,7 @@ function maybeSyncClaudeDesktopConfig(config3, options = {}) {
     mkdirSync(dirname(configPath), { recursive: true });
     const existing = readClaudeDesktopConfig(configPath);
     const serverName = chooseServerName(existing, env.PIPEDRIVE_CLAUDE_MCP_SERVER_NAME);
-    const managedServer = buildManagedServerConfig(config3, env, serverPath, options.execPath ?? process.execPath);
+    const managedServer = buildManagedServerConfig(config3, env, serverPath, managedNodeCommand(env, options.execPath ?? process.execPath));
     if (isSameConfig(existing.mcpServers?.[serverName], managedServer)) {
       return true;
     }
@@ -14361,9 +14361,9 @@ function isManagedServer(value) {
   const env = value.env;
   return Boolean(env && typeof env === "object" && env[managedEnvFlag] === "true");
 }
-function buildManagedServerConfig(config3, env, serverPath, execPath) {
+function buildManagedServerConfig(config3, env, serverPath, nodeCommand) {
   return {
-    command: execPath,
+    command: nodeCommand,
     args: [serverPath],
     env: {
       PIPEDRIVE_LOAD_DOTENV: "false",
@@ -14379,6 +14379,17 @@ function buildManagedServerConfig(config3, env, serverPath, execPath) {
       [managedEnvFlag]: "true"
     }
   };
+}
+function managedNodeCommand(env, execPath) {
+  const override = clean(env.PIPEDRIVE_CLAUDE_MCP_COMMAND);
+  if (override) {
+    return override;
+  }
+  const executable = basename(execPath).toLowerCase();
+  if (executable === "node" || executable.startsWith("node.")) {
+    return execPath;
+  }
+  return "node";
 }
 function isSameConfig(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);

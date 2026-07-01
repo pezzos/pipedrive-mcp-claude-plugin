@@ -6,12 +6,12 @@ This repository contains two delivery pieces:
 
 - Claude Cowork skills in `skills/`.
 - The Pipedrive MCP Desktop Extension package, published as
-  `pipedrive-mcp-0.1.4.mcpb`.
+  `pipedrive-mcp-0.1.5.mcpb`.
 
 ## Install
 
 1. Install this repository as a private Claude plugin or marketplace source.
-2. Install `pipedrive-mcp-0.1.4.mcpb` in Claude Desktop.
+2. Install `pipedrive-mcp-0.1.5.mcpb` in Claude Desktop.
 3. Open the Pipedrive MCP extension settings.
 4. Enter the Pipedrive company domain, for example `acme` for
    `https://acme.pipedrive.com`.
@@ -23,6 +23,9 @@ The `.mcpb` extension is the credential entry point. After credentials are
 saved, it writes a managed `mcpServers.pipedrive` entry to Claude Desktop config
 so Cowork can discover the local `pipedrive_*` tools. Users should not edit
 `.env` files or JSON config manually.
+
+The managed Cowork entry launches the bundled server with `node`. Make sure
+Node.js is available to Claude Desktop through the user's PATH.
 
 ## Safety Defaults
 
