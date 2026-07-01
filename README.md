@@ -1,70 +1,54 @@
-# Pipedrive MCP
+# Pipedrive MCP Claude Plugin
 
-This repository publishes the Pipedrive MCP delivery bundle for Claude.
+Private Claude plugin package for Pipedrive CRM workflows.
 
-It contains two separate pieces:
+This repository contains two delivery pieces:
 
-- `pipedrive-mcp-0.1.3.mcpb`: Claude Desktop Extension that installs the local
-  MCP connector and exposes editable settings for Pipedrive credentials.
-- `Pipedrive MCP` marketplace plugin: Claude Cowork skills that route natural
-  language CRM requests to `pipedrive_*` tools.
+- Claude Cowork skills in `skills/`.
+- The Pipedrive MCP Desktop Extension package, published as
+  `pipedrive-mcp-0.1.4.mcpb`.
 
-Use both pieces together. The repository plugin is skills-only on purpose. It
-does not define its own connector because the Cowork plugin Connectors tab is a
-read-only view and is not the right place for API-key entry.
+## Install
 
-## Install The Connector
+1. Install this repository as a private Claude plugin or marketplace source.
+2. Install `pipedrive-mcp-0.1.4.mcpb` in Claude Desktop.
+3. Open the Pipedrive MCP extension settings.
+4. Enter the Pipedrive company domain, for example `acme` for
+   `https://acme.pipedrive.com`.
+5. Enter either a Pipedrive API token or an OAuth access token.
+6. Enable write, Mailbox, or delete tools only when the operator needs them.
+7. Save settings, then restart Claude Desktop or start a new Cowork task.
 
-Install `pipedrive-mcp-0.1.3.mcpb` in Claude Desktop:
+The `.mcpb` extension is the credential entry point. After credentials are
+saved, it writes a managed `mcpServers.pipedrive` entry to Claude Desktop config
+so Cowork can discover the local `pipedrive_*` tools. Users should not edit
+`.env` files or JSON config manually.
 
-1. Open Claude Desktop settings.
-2. Go to Extensions.
-3. Open Advanced settings.
-4. Click Install Extension.
-5. Select `pipedrive-mcp-0.1.3.mcpb`.
-6. Fill the extension settings:
-   - Pipedrive company domain: enter only the company subdomain, not the full
-     URL.
-   - Pipedrive API token, or OAuth access token where required.
-   - Optional write, Mailbox, delete, and timeout settings.
+## Safety Defaults
 
-Do not paste API keys into a Claude conversation and do not rely on a local
-`.env` file for client delivery.
+- Read-only CRM tools are available by default.
+- Write tools require the extension setting `Enable write tools`.
+- Mailbox tools require write tools and `Enable Mailbox tools`.
+- Delete tools require write tools and `Enable delete tools`.
+- Write calls default to dry-run unless the tool call explicitly sets
+  `dry_run=false`.
+- Skills instruct Claude to use only `pipedrive_*` tools, not the official
+  Pipedrive connector.
 
-## Install The Cowork Skills
+## Troubleshooting
 
-After the Desktop Extension is installed and configured, add this repository as
-a personal Claude plugin marketplace:
+If Cowork does not see Pipedrive tools:
 
-```text
-pezzos/pipedrive-mcp-claude-plugin
-```
+- Confirm the Claude plugin is installed and enabled.
+- Confirm the `.mcpb` extension is installed, enabled, and configured with a
+  company domain plus API/OAuth token.
+- Restart Claude Desktop or start a new Cowork task after saving settings.
+- Confirm Claude Desktop config contains a managed `mcpServers.pipedrive`
+  entry.
 
-Install `Pipedrive MCP` from the Personal tab. This provides the Cowork skills
-only. The actual connector is the Desktop Extension installed from the `.mcpb`.
+The managed Desktop MCP entry contains the token as local environment
+configuration for Claude Desktop. Treat Claude Desktop configuration and
+extension storage as sensitive files, and rotate the Pipedrive token during
+offboarding.
 
-## Smoke Test
-
-Start a new Claude/Cowork session and ask:
-
-```text
-Use Pipedrive MCP only. Run the pipedrive_health_check tool and report whether
-Pipedrive MCP is connected. Do not use the official Pipedrive connector.
-```
-
-Expected result after settings are filled:
-
-- `token_configured: true`
-- `company_domain_configured: true`
-- `writes_enabled: false` unless explicitly enabled
-
-If Claude says no `pipedrive_*` tools are available, restart Claude Desktop and
-start a new Cowork session.
-
-## Contents
-
-- `.claude-plugin/marketplace.json`: private marketplace manifest.
-- `.claude-plugin/plugin.json`: skills-only Cowork plugin manifest.
-- `skills/`: Pipedrive workflow skills.
-- `mcpb/pipedrive-mcp/`: unpacked Desktop Extension source.
-- `pipedrive-mcp-0.1.3.mcpb`: installable Desktop Extension.
+See `docs/CLAUDE_COWORK_PLUGIN.md` for the operator runbook.

@@ -269,7 +269,7 @@ var require_main = __commonJS({
         return { parsed: parsedAll };
       }
     }
-    function config2(options) {
+    function config3(options) {
       if (_dotenvKey(options).length === 0) {
         return DotenvModule.configDotenv(options);
       }
@@ -340,7 +340,7 @@ var require_main = __commonJS({
       configDotenv,
       _configVault,
       _parseVault,
-      config: config2,
+      config: config3,
       decrypt,
       parse: parse3,
       populate
@@ -2558,8 +2558,8 @@ var require_resolve = __commonJS({
       }
       return count;
     }
-    function getFullPath(resolver, id = "", normalize) {
-      if (normalize !== false)
+    function getFullPath(resolver, id = "", normalize2) {
+      if (normalize2 !== false)
         id = normalizeId(id);
       const p = resolver.parse(id);
       return _getFullPath(resolver, p);
@@ -3955,7 +3955,7 @@ var require_fast_uri = __commonJS({
     "use strict";
     var { normalizeIPv6, removeDotSegments, recomposeAuthority, normalizePercentEncoding, normalizePathEncoding, escapePreservingEscapes, reescapeHostDelimiters, isIPv4, nonSimpleDomain } = require_utils();
     var { SCHEMES, getSchemeHandler } = require_schemes();
-    function normalize(uri, options) {
+    function normalize2(uri, options) {
       if (typeof uri === "string") {
         uri = /** @type {T} */
         normalizeString(uri, options);
@@ -4222,7 +4222,7 @@ var require_fast_uri = __commonJS({
     }
     var fastUri = {
       SCHEMES,
-      normalize,
+      normalize: normalize2,
       resolve: resolve2,
       resolveComponent,
       equal,
@@ -7879,8 +7879,8 @@ function prefixIssues(path, issues) {
 function unwrapMessage(message) {
   return typeof message === "string" ? message : message?.message;
 }
-function finalizeIssue(iss, ctx, config2) {
-  const message = iss.message ? iss.message : unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config2.customError?.(iss)) ?? unwrapMessage(config2.localeError?.(iss)) ?? "Invalid input";
+function finalizeIssue(iss, ctx, config3) {
+  const message = iss.message ? iss.message : unwrapMessage(iss.inst?._zod.def?.error?.(iss)) ?? unwrapMessage(ctx?.error?.(iss)) ?? unwrapMessage(config3.customError?.(iss)) ?? unwrapMessage(config3.localeError?.(iss)) ?? "Invalid input";
   const { inst: _inst, continue: _continue, input: _input, ...rest } = iss;
   rest.path ?? (rest.path = []);
   rest.message = message;
@@ -14258,12 +14258,154 @@ var StdioServerTransport = class {
   }
 };
 
+// src/server.ts
+import { fileURLToPath as fileURLToPath3 } from "node:url";
+
+// src/claudeBridge.ts
+import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, normalize } from "node:path";
+import { fileURLToPath } from "node:url";
+var managedEnvFlag = "PIPEDRIVE_MANAGED_BY_PIPEDRIVE_MCP_EXTENSION";
+function maybeSyncClaudeDesktopConfig(config3, options = {}) {
+  const env = options.env ?? process.env;
+  const serverPath = options.serverPath ?? fileURLToPath(import.meta.url);
+  if (env.PIPEDRIVE_SYNC_CLAUDE_DESKTOP_CONFIG === "false") {
+    return false;
+  }
+  if (!isClaudeDesktopExtensionServerPath(serverPath)) {
+    return false;
+  }
+  if (!hasMinimumBridgeConfig(config3, env)) {
+    return false;
+  }
+  const configPath = claudeDesktopConfigPath(options);
+  if (!configPath) {
+    return false;
+  }
+  try {
+    mkdirSync(dirname(configPath), { recursive: true });
+    const existing = readClaudeDesktopConfig(configPath);
+    const serverName = chooseServerName(existing, env.PIPEDRIVE_CLAUDE_MCP_SERVER_NAME);
+    const managedServer = buildManagedServerConfig(config3, env, serverPath, options.execPath ?? process.execPath);
+    if (isSameConfig(existing.mcpServers?.[serverName], managedServer)) {
+      return true;
+    }
+    existing.mcpServers = {
+      ...existing.mcpServers ?? {},
+      [serverName]: managedServer
+    };
+    writeClaudeDesktopConfig(configPath, existing);
+    return true;
+  } catch (error2) {
+    console.error(`Failed to sync Claude Desktop MCP config: ${error2 instanceof Error ? error2.message : String(error2)}`);
+    return false;
+  }
+}
+function claudeDesktopConfigPath(options = {}) {
+  const env = options.env ?? process.env;
+  const platform = options.platform ?? process.platform;
+  const home = options.homeDir ?? env.HOME ?? env.USERPROFILE;
+  if (!home) {
+    return void 0;
+  }
+  if (platform === "darwin") {
+    return join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
+  }
+  if (platform === "win32") {
+    const appData = env.APPDATA ?? join(home, "AppData", "Roaming");
+    return join(appData, "Claude", "claude_desktop_config.json");
+  }
+  const configHome = env.XDG_CONFIG_HOME ?? join(home, ".config");
+  return join(configHome, "Claude", "claude_desktop_config.json");
+}
+function isClaudeDesktopExtensionServerPath(serverPath) {
+  const normalized = normalize(serverPath);
+  return normalized.includes(normalize("Claude Extensions")) && normalized.includes("local.mcpb.");
+}
+function hasMinimumBridgeConfig(config3, env) {
+  const hasToken = Boolean(config3.apiToken || config3.accessToken);
+  const hasBase = Boolean(config3.companyDomain || clean(env.PIPEDRIVE_BASE_URL));
+  return hasToken && hasBase;
+}
+function readClaudeDesktopConfig(configPath) {
+  if (!existsSync(configPath)) {
+    return {};
+  }
+  const text = readFileSync(configPath, "utf8").trim();
+  if (!text) {
+    return {};
+  }
+  const parsed = JSON.parse(text);
+  if (parsed.mcpServers && (typeof parsed.mcpServers !== "object" || Array.isArray(parsed.mcpServers))) {
+    throw new Error("claude_desktop_config.json has a non-object mcpServers field");
+  }
+  return parsed;
+}
+function chooseServerName(config3, requestedName) {
+  const preferred = clean(requestedName) ?? "pipedrive";
+  const existing = config3.mcpServers?.[preferred];
+  if (!existing || isManagedServer(existing)) {
+    return preferred;
+  }
+  const fallback = preferred === "pipedrive-mcp" ? "pipedrive-mcp-extension" : "pipedrive-mcp";
+  const fallbackExisting = config3.mcpServers?.[fallback];
+  if (!fallbackExisting || isManagedServer(fallbackExisting)) {
+    return fallback;
+  }
+  throw new Error(`Claude Desktop MCP config already has user-managed '${preferred}' and '${fallback}' servers`);
+}
+function isManagedServer(value) {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+  const env = value.env;
+  return Boolean(env && typeof env === "object" && env[managedEnvFlag] === "true");
+}
+function buildManagedServerConfig(config3, env, serverPath, execPath) {
+  return {
+    command: execPath,
+    args: [serverPath],
+    env: {
+      PIPEDRIVE_LOAD_DOTENV: "false",
+      PIPEDRIVE_COMPANY_DOMAIN: config3.companyDomain ?? "",
+      PIPEDRIVE_BASE_URL: clean(env.PIPEDRIVE_BASE_URL) ?? "",
+      PIPEDRIVE_API_TOKEN: config3.apiToken ?? "",
+      PIPEDRIVE_ACCESS_TOKEN: config3.accessToken ?? "",
+      PIPEDRIVE_ENABLE_WRITES: String(config3.enableWrites),
+      PIPEDRIVE_ENABLE_MAILBOX_TOOLS: String(config3.enableMailboxTools),
+      PIPEDRIVE_ENABLE_DELETE_TOOLS: String(config3.enableDeleteTools),
+      PIPEDRIVE_REQUEST_TIMEOUT_MS: String(config3.requestTimeoutMs),
+      PIPEDRIVE_SYNC_CLAUDE_DESKTOP_CONFIG: "false",
+      [managedEnvFlag]: "true"
+    }
+  };
+}
+function isSameConfig(left, right) {
+  return JSON.stringify(left) === JSON.stringify(right);
+}
+function writeClaudeDesktopConfig(configPath, config3) {
+  const tempPath = `${configPath}.tmp-${process.pid}-${Date.now()}`;
+  try {
+    writeFileSync(tempPath, `${JSON.stringify(config3, null, 2)}
+`, { encoding: "utf8", mode: 384 });
+    chmodSync(tempPath, 384);
+    renameSync(tempPath, configPath);
+  } catch (error2) {
+    rmSync(tempPath, { force: true });
+    throw error2;
+  }
+}
+function clean(value) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : void 0;
+}
+
 // src/config.ts
 function loadConfig(env = process.env) {
-  const companyDomain = clean(env.PIPEDRIVE_COMPANY_DOMAIN);
-  const apiToken = clean(env.PIPEDRIVE_API_TOKEN);
-  const accessToken = clean(env.PIPEDRIVE_ACCESS_TOKEN);
-  const baseUrl = clean(env.PIPEDRIVE_BASE_URL) ?? defaultBaseUrl(companyDomain);
+  const companyDomain = clean2(env.PIPEDRIVE_COMPANY_DOMAIN);
+  const apiToken = clean2(env.PIPEDRIVE_API_TOKEN);
+  const accessToken = clean2(env.PIPEDRIVE_ACCESS_TOKEN);
+  const baseUrl = clean2(env.PIPEDRIVE_BASE_URL) ?? defaultBaseUrl(companyDomain);
   const allowMockBaseUrl = env.PIPEDRIVE_ALLOW_MOCK_BASE_URL === "true";
   const enableWrites = env.PIPEDRIVE_ENABLE_WRITES === "true";
   const enableDeleteTools = env.PIPEDRIVE_ENABLE_DELETE_TOOLS === "true";
@@ -14281,24 +14423,24 @@ function loadConfig(env = process.env) {
     requestTimeoutMs: Number.isFinite(requestTimeoutMs) && requestTimeoutMs > 0 ? requestTimeoutMs : 1e4
   };
 }
-function requireConfigured(config2) {
+function requireConfigured(config3) {
   const missing = [];
-  if (!config2.apiToken && !config2.accessToken) {
+  if (!config3.apiToken && !config3.accessToken) {
     missing.push("PIPEDRIVE_API_TOKEN or PIPEDRIVE_ACCESS_TOKEN");
   }
-  if (!config2.baseUrl) {
+  if (!config3.baseUrl) {
     missing.push("PIPEDRIVE_COMPANY_DOMAIN or PIPEDRIVE_BASE_URL");
   }
   if (missing.length > 0) {
     throw new Error(`Missing Pipedrive configuration: ${missing.join(", ")}`);
   }
-  if (!isAllowedBaseUrl(config2.baseUrl, config2.allowMockBaseUrl)) {
+  if (!isAllowedBaseUrl(config3.baseUrl, config3.allowMockBaseUrl)) {
     throw new Error(
       "Invalid Pipedrive configuration: PIPEDRIVE_BASE_URL must be https://*.pipedrive.com, or a loopback URL when PIPEDRIVE_ALLOW_MOCK_BASE_URL=true"
     );
   }
 }
-function clean(value) {
+function clean2(value) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : void 0;
 }
@@ -14330,9 +14472,9 @@ function isLoopbackBaseUrl(parsed) {
 
 // src/env.ts
 var import_dotenv = __toESM(require_main(), 1);
-import { existsSync } from "node:fs";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { existsSync as existsSync2 } from "node:fs";
+import { dirname as dirname2, resolve } from "node:path";
+import { fileURLToPath as fileURLToPath2 } from "node:url";
 var runtimeEnvKeys = {
   enableWrites: "PIPEDRIVE_ENABLE_WRITES",
   enableDeleteTools: "PIPEDRIVE_ENABLE_DELETE_TOOLS",
@@ -14364,7 +14506,7 @@ function loadRuntimeEnv(options = {}) {
   }
   const packageDir = options.packageDir ?? defaultPackageDir();
   const localDotenv = resolve(packageDir, ".env");
-  const dotenvLocalFilePresent = existsSync(localDotenv);
+  const dotenvLocalFilePresent = existsSync2(localDotenv);
   diagnostics = {
     ...diagnostics,
     dotenvLocalFilePresent
@@ -14395,7 +14537,7 @@ function getRuntimeEnvDiagnostics() {
   };
 }
 function defaultPackageDir() {
-  return dirname(dirname(fileURLToPath(import.meta.url)));
+  return dirname2(dirname2(fileURLToPath2(import.meta.url)));
 }
 function formatError2(error2) {
   return error2 instanceof Error ? error2.message : String(error2);
@@ -21537,13 +21679,13 @@ var ExperimentalMcpServerTasks = class {
   constructor(_mcpServer) {
     this._mcpServer = _mcpServer;
   }
-  registerToolTask(name, config2, handler) {
-    const execution = { taskSupport: "required", ...config2.execution };
+  registerToolTask(name, config3, handler) {
+    const execution = { taskSupport: "required", ...config3.execution };
     if (execution.taskSupport === "forbidden") {
       throw new Error(`Cannot register task-based tool '${name}' with taskSupport 'forbidden'. Use registerTool() instead.`);
     }
     const mcpServerInternal = this._mcpServer;
-    return mcpServerInternal._createRegisteredTool(name, config2.title, config2.description, config2.inputSchema, config2.outputSchema, config2.annotations, execution, config2._meta, handler);
+    return mcpServerInternal._createRegisteredTool(name, config3.title, config3.description, config3.inputSchema, config3.outputSchema, config3.annotations, execution, config3._meta, handler);
   }
 };
 
@@ -21972,12 +22114,12 @@ var McpServer = class {
       return registeredResourceTemplate;
     }
   }
-  registerResource(name, uriOrTemplate, config2, readCallback) {
+  registerResource(name, uriOrTemplate, config3, readCallback) {
     if (typeof uriOrTemplate === "string") {
       if (this._registeredResources[uriOrTemplate]) {
         throw new Error(`Resource ${uriOrTemplate} is already registered`);
       }
-      const registeredResource = this._createRegisteredResource(name, config2.title, uriOrTemplate, config2, readCallback);
+      const registeredResource = this._createRegisteredResource(name, config3.title, uriOrTemplate, config3, readCallback);
       this.setResourceRequestHandlers();
       this.sendResourceListChanged();
       return registeredResource;
@@ -21985,7 +22127,7 @@ var McpServer = class {
       if (this._registeredResourceTemplates[name]) {
         throw new Error(`Resource template ${name} is already registered`);
       }
-      const registeredResourceTemplate = this._createRegisteredResourceTemplate(name, config2.title, uriOrTemplate, config2, readCallback);
+      const registeredResourceTemplate = this._createRegisteredResourceTemplate(name, config3.title, uriOrTemplate, config3, readCallback);
       this.setResourceRequestHandlers();
       this.sendResourceListChanged();
       return registeredResourceTemplate;
@@ -22183,11 +22325,11 @@ var McpServer = class {
   /**
    * Registers a tool with a config object and callback.
    */
-  registerTool(name, config2, cb) {
+  registerTool(name, config3, cb) {
     if (this._registeredTools[name]) {
       throw new Error(`Tool ${name} is already registered`);
     }
-    const { title, description, inputSchema, outputSchema, annotations, _meta } = config2;
+    const { title, description, inputSchema, outputSchema, annotations, _meta } = config3;
     return this._createRegisteredTool(name, title, description, inputSchema, outputSchema, annotations, { taskSupport: "forbidden" }, _meta, cb);
   }
   prompt(name, ...rest) {
@@ -22211,11 +22353,11 @@ var McpServer = class {
   /**
    * Registers a prompt with a config object and callback.
    */
-  registerPrompt(name, config2, cb) {
+  registerPrompt(name, config3, cb) {
     if (this._registeredPrompts[name]) {
       throw new Error(`Prompt ${name} is already registered`);
     }
-    const { title, description, argsSchema } = config2;
+    const { title, description, argsSchema } = config3;
     const registeredPrompt = this._createRegisteredPrompt(name, title, description, argsSchema, cb);
     this.setPromptRequestHandlers();
     this.sendPromptListChanged();
@@ -22343,8 +22485,8 @@ var EMPTY_COMPLETION_RESULT = {
 var PipedriveClient = class {
   fetchImpl;
   config;
-  constructor(config2, fetchImpl = fetch) {
-    this.config = config2;
+  constructor(config3, fetchImpl = fetch) {
+    this.config = config3;
     this.fetchImpl = fetchImpl;
   }
   async get(path, params = {}) {
@@ -22410,11 +22552,11 @@ var PipedriveClient = class {
     return url;
   }
 };
-function authHeaders(config2) {
-  if (config2.accessToken) {
-    return { Authorization: `Bearer ${config2.accessToken}` };
+function authHeaders(config3) {
+  if (config3.accessToken) {
+    return { Authorization: `Bearer ${config3.accessToken}` };
   }
-  return { "x-api-token": config2.apiToken ?? "" };
+  return { "x-api-token": config3.apiToken ?? "" };
 }
 function contentType(format) {
   return format === "form" ? "application/x-www-form-urlencoded" : "application/json";
@@ -22506,13 +22648,13 @@ var writeGuardSchema = {
   dry_run: boolean2().default(true),
   validate_links: boolean2().default(false)
 };
-function guardedWriteResult(config2, args, body, extra = {}) {
+function guardedWriteResult(config3, args, body, extra = {}) {
   const dryRun = args.dry_run ?? true;
-  if (dryRun || !config2.enableWrites) {
+  if (dryRun || !config3.enableWrites) {
     return jsonResult({
       dry_run: true,
       dry_run_reason: dryRun ? "explicit" : "writes_disabled",
-      writes_enabled: config2.enableWrites,
+      writes_enabled: config3.enableWrites,
       would_send: redactDryRunPayload(body),
       ...extra
     });
@@ -22770,7 +22912,7 @@ function mailboxProbeSummary(response) {
 function isRecord2(value) {
   return typeof value === "object" && value !== null;
 }
-function buildServer(config2, client = new PipedriveClient(config2)) {
+function buildServer(config3, client = new PipedriveClient(config3)) {
   const server2 = new McpServer({
     name: "pipedrive-mcp",
     version: "0.1.0"
@@ -22786,16 +22928,16 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
     async () => {
       const envDiagnostics = getRuntimeEnvDiagnostics();
       return jsonResult({
-        token_configured: Boolean(config2.apiToken || config2.accessToken),
-        api_token_configured: Boolean(config2.apiToken),
-        access_token_configured: Boolean(config2.accessToken),
-        company_domain_configured: Boolean(config2.companyDomain),
-        base_url_configured: Boolean(config2.baseUrl),
-        mock_base_url_allowed: config2.allowMockBaseUrl,
-        writes_enabled: config2.enableWrites,
-        delete_tools_enabled: config2.enableWrites && config2.enableDeleteTools,
-        mailbox_tools_enabled: config2.enableWrites && config2.enableMailboxTools,
-        request_timeout_ms: config2.requestTimeoutMs,
+        token_configured: Boolean(config3.apiToken || config3.accessToken),
+        api_token_configured: Boolean(config3.apiToken),
+        access_token_configured: Boolean(config3.accessToken),
+        company_domain_configured: Boolean(config3.companyDomain),
+        base_url_configured: Boolean(config3.baseUrl),
+        mock_base_url_allowed: config3.allowMockBaseUrl,
+        writes_enabled: config3.enableWrites,
+        delete_tools_enabled: config3.enableWrites && config3.enableDeleteTools,
+        mailbox_tools_enabled: config3.enableWrites && config3.enableMailboxTools,
+        request_timeout_ms: config3.requestTimeoutMs,
         runtime_env_diagnostics_initialized: envDiagnostics.initialized,
         dotenv_loading_enabled: envDiagnostics.dotenvLoadingEnabled,
         dotenv_local_file_present: envDiagnostics.dotenvLocalFilePresent,
@@ -23238,7 +23380,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
     },
     async ({ deal_id, ...args }) => jsonResult(await client.get(`/api/v1/deals/${deal_id}/files`, args))
   );
-  if (config2.enableWrites && config2.enableMailboxTools) {
+  if (config3.enableWrites && config3.enableMailboxTools) {
     server2.registerTool(
       "pipedrive_list_deal_mail_messages",
       {
@@ -23332,7 +23474,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = { deal_id, lead_id };
         const refs = [dealRef(deal_id), leadRef(lead_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const writeGate = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const writeGate = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (writeGate) {
           return writeGate;
         }
@@ -23529,7 +23671,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
     },
     async ({ task_id }) => jsonResult(normalizeTaskResponse(await client.get(`/api/v2/tasks/${task_id}`)))
   );
-  if (config2.enableWrites) {
+  if (config3.enableWrites) {
     server2.registerTool(
       "pipedrive_create_project",
       {
@@ -23561,7 +23703,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           ...(body.org_ids ?? []).map((id) => organizationRef(id))
         ];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23601,7 +23743,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           ...(body.org_ids ?? []).map((id) => organizationRef(id))
         ];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23622,7 +23764,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const ref = projectRef(project_id);
         const validated_links = await validateLinksIfRequested(client, validate_links, [ref]);
         const dryRunResult = guardedWriteResult(
-          config2,
+          config3,
           { dry_run },
           { project_id },
           { validated_links }
@@ -23633,7 +23775,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         return jsonResult(await client.post(`/api/v2/projects/${project_id}/archive`, {}));
       }
     );
-    if (config2.enableDeleteTools) {
+    if (config3.enableDeleteTools) {
       server2.registerTool(
         "pipedrive_delete_project",
         {
@@ -23648,7 +23790,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           const ref = projectRef(project_id);
           const validated_links = await validateLinksIfRequested(client, validate_links, [ref]);
           const dryRunResult = guardedWriteResult(
-            config2,
+            config3,
             { dry_run },
             { project_id },
             { validated_links }
@@ -23684,7 +23826,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = taskPayload(body);
         const refs = [projectRef(body.project_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23716,7 +23858,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const refs = [taskRef(task_id), projectRef(body.project_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
         const milestoneDueDateNeedsRead = body.milestone === true && body.due_date === void 0;
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, {
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, {
           validated_links,
           ...milestoneDueDateNeedsRead && (dry_run ?? true) ? { warnings: ["milestone=true without due_date requires the existing task to already have a due_date on real write"] } : {}
         });
@@ -23728,7 +23870,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         return jsonResult(normalizeTaskResponse(await client.patch(`/api/v2/tasks/${task_id}`, payload)));
       }
     );
-    if (config2.enableDeleteTools) {
+    if (config3.enableDeleteTools) {
       server2.registerTool(
         "pipedrive_delete_task",
         {
@@ -23743,7 +23885,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           const ref = taskRef(task_id);
           const validated_links = await validateLinksIfRequested(client, validate_links, [ref]);
           const dryRunResult = guardedWriteResult(
-            config2,
+            config3,
             { dry_run },
             { task_id },
             { validated_links }
@@ -23785,7 +23927,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = activityPayload(body);
         const refs = [dealRef(body.deal_id), personRef(body.person_id), organizationRef(body.org_id), leadRef(body.lead_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23815,7 +23957,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = withCustomFields(body, custom_fields);
         const refs = [personRef(body.person_id), organizationRef(body.org_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23846,7 +23988,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = withCustomFields(body, custom_fields);
         const refs = [dealRef(deal_id), personRef(body.person_id), organizationRef(body.org_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23868,7 +24010,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = { stage_id };
         const refs = [dealRef(deal_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23890,7 +24032,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = { status: "won", close_time: normalizeCloseTime(close_time) };
         const refs = [dealRef(deal_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23913,7 +24055,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = { status: "lost", lost_reason, close_time: normalizeCloseTime(close_time) };
         const refs = [dealRef(deal_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23947,7 +24089,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = { product_id, ...body };
         const refs = [dealRef(deal_id), productRef(product_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23969,7 +24111,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = { person_id };
         const refs = [dealRef(deal_id), personRef(person_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -23991,7 +24133,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = { user_id };
         const refs = [dealRef(deal_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24019,7 +24161,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = withCustomFields(personPayload(body), custom_fields);
         const refs = [organizationRef(body.org_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24048,7 +24190,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = withCustomFields(personPayload(body), custom_fields);
         const refs = [personRef(person_id), organizationRef(body.org_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24071,7 +24213,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
       async ({ dry_run, validate_links, custom_fields, ...body }) => {
         const payload = withCustomFields(body, custom_fields);
         const validated_links = await validateLinksIfRequested(client, validate_links, []);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24096,7 +24238,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = withCustomFields(body, custom_fields);
         const refs = [organizationRef(organization_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24125,7 +24267,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = withCustomFields(leadPayload({ ...body, person_id, organization_id }), custom_fields);
         const refs = [personRef(person_id), organizationRef(organization_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24154,7 +24296,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = withCustomFields(leadPayload({ ...body, person_id, organization_id }), custom_fields);
         const refs = [leadRef(lead_id), personRef(person_id), organizationRef(organization_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24177,7 +24319,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = { pipeline_id, stage_id };
         const refs = [leadRef(lead_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24201,7 +24343,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
       async ({ dry_run, validate_links, ...body }) => {
         const refs = [dealRef(body.deal_id), personRef(body.person_id), organizationRef(body.org_id), leadRef(body.lead_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, body, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, body, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24222,7 +24364,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
       async ({ note_id, dry_run, validate_links, ...body }) => {
         const refs = [noteRef(note_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, body, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, body, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24262,7 +24404,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           leadRef(body.lead_id)
         ];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24283,7 +24425,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         const payload = { done: true };
         const refs = [activityRef(activity_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24307,7 +24449,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         requireOneDefinedField(body, ["due_date", "due_time", "duration"], "Activity reschedule");
         const refs = [activityRef(activity_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, body, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, body, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24374,7 +24516,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         };
         const payload = { call: callBody, follow_up: followUpBody };
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const dryRunResult = guardedWriteResult(config2, { dry_run }, payload, { validated_links });
+        const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
         if (dryRunResult) {
           return dryRunResult;
         }
@@ -24392,7 +24534,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         return jsonResult({ call, follow_up: followUp });
       }
     );
-    if (config2.enableDeleteTools) {
+    if (config3.enableDeleteTools) {
       server2.registerTool(
         "pipedrive_delete_activity",
         {
@@ -24407,7 +24549,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           const ref = activityRef(activity_id);
           const validated_links = await validateLinksIfRequested(client, validate_links, [ref]);
           const dryRunResult = guardedWriteResult(
-            config2,
+            config3,
             { dry_run },
             { activity_id },
             { validated_links }
@@ -24419,7 +24561,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         }
       );
     }
-    if (config2.enableDeleteTools) {
+    if (config3.enableDeleteTools) {
       server2.registerTool(
         "pipedrive_delete_deal",
         {
@@ -24434,7 +24576,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           const ref = dealRef(deal_id);
           const validated_links = await validateLinksIfRequested(client, validate_links, [ref]);
           const dryRunResult = guardedWriteResult(
-            config2,
+            config3,
             { dry_run },
             { deal_id },
             { validated_links }
@@ -24446,7 +24588,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
         }
       );
     }
-    if (config2.enableDeleteTools) {
+    if (config3.enableDeleteTools) {
       server2.registerTool(
         "pipedrive_delete_lead",
         {
@@ -24461,7 +24603,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           const ref = leadRef(lead_id);
           const validated_links = await validateLinksIfRequested(client, validate_links, [ref]);
           const dryRunResult = guardedWriteResult(
-            config2,
+            config3,
             { dry_run },
             { lead_id },
             { validated_links }
@@ -24486,7 +24628,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           const ref = noteRef(note_id);
           const validated_links = await validateLinksIfRequested(client, validate_links, [ref]);
           const dryRunResult = guardedWriteResult(
-            config2,
+            config3,
             { dry_run },
             { note_id },
             { validated_links }
@@ -24511,7 +24653,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           const ref = organizationRef(organization_id);
           const validated_links = await validateLinksIfRequested(client, validate_links, [ref]);
           const dryRunResult = guardedWriteResult(
-            config2,
+            config3,
             { dry_run },
             { organization_id },
             { validated_links }
@@ -24536,7 +24678,7 @@ function buildServer(config2, client = new PipedriveClient(config2)) {
           const ref = personRef(person_id);
           const validated_links = await validateLinksIfRequested(client, validate_links, [ref]);
           const dryRunResult = guardedWriteResult(
-            config2,
+            config3,
             { dry_run },
             { person_id },
             { validated_links }
@@ -24564,6 +24706,8 @@ function jsonResult(value) {
 
 // src/server.ts
 loadRuntimeEnv();
-var server = buildServer(loadConfig());
+var config2 = loadConfig();
+maybeSyncClaudeDesktopConfig(config2, { serverPath: fileURLToPath3(import.meta.url) });
+var server = buildServer(config2);
 var transport = new StdioServerTransport();
 await server.connect(transport);
