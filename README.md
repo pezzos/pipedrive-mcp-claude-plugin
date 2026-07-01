@@ -26,6 +26,40 @@ version.
 
 ## Quick Start
 
+### Claude Desktop With Settings UI
+
+Use the MCPB desktop extension when the operator needs editable settings fields
+for the Pipedrive company domain, API token, and feature flags.
+
+Download `pipedrive-mcp-0.1.1.mcpb` from this repository, then install it in
+Claude Desktop:
+
+1. Open Claude Desktop settings.
+2. Go to Extensions.
+3. Open Advanced settings.
+4. Click Install Extension.
+5. Select `pipedrive-mcp-0.1.1.mcpb`.
+6. Fill the Pipedrive configuration fields in Claude's extension settings.
+
+This is the supported Claude Desktop path for API keys. The personal plugin
+repository import shows bundled Cowork skills and connectors, but its connector
+environment variables are displayed read-only in the current Claude Desktop UI.
+
+### Claude Cowork Plugin Repository
+
+In Claude Desktop Customize, add this repository as a personal plugin
+marketplace:
+
+```text
+pezzos/pipedrive-mcp-claude-plugin
+```
+
+Install `Pipedrive MCP` from the Personal tab. This provides the Cowork skills
+and the bundled MCP connector. Use the MCPB path above when the operator needs
+Claude Desktop to render API-key fields.
+
+### Development Checkout
+
 For Claude Cowork or Claude Code plugin delivery, build the autonomous plugin
 artifact:
 
