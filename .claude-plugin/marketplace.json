@@ -9,7 +9,7 @@
       "name": "pipedrive-mcp",
       "displayName": "Pipedrive MCP",
       "description": "Claude Cowork plugin for Pipedrive CRM operations through a bundled local MCP server.",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "source": "./",
       "author": {
         "name": "PezzosLabs"
