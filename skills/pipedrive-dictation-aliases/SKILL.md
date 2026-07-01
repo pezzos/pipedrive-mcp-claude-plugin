@@ -1,9 +1,18 @@
 ---
 name: pipedrive-dictation-aliases
-description: Use when a spoken or dictated contact, company, deal, lead, project, or activity name is not found in Pipedrive, looks phonetically close to another result, or the user corrects a dictated CRM name.
+description: Use with the custom Pipedrive MCP tools when a spoken or dictated contact, company, deal, lead, project, or activity name is not found in Pipedrive, looks phonetically close to another result, or the user corrects a dictated CRM name. Do not use the official Pipedrive connector.
 ---
 
 # Pipedrive Dictation Aliases
+
+This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
+tools whose names start with `pipedrive_`, such as `pipedrive_health_check` and
+`pipedrive_search_persons`. Do not use Anthropic's official Pipedrive connector,
+generic Pipedrive integrations, browser automation, or direct web/API calls.
+
+If no `pipedrive_` tools are available, stop and tell the operator that the
+Pipedrive MCP desktop extension is not connected. Do not continue with the
+official Pipedrive connector.
 
 Use this skill when speech-to-text likely changed a Pipedrive name. Example: "David Lespée" may need to resolve to "David Lespect".
 

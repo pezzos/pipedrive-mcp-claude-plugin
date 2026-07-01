@@ -1,9 +1,18 @@
 ---
 name: pipedrive-add-activity
-description: Use when the user asks in natural language to add, schedule, plan, or log a Pipedrive activity such as a task, follow-up, call, meeting, deadline, or email to do for a contact, company, deal, lead, or project.
+description: Use with the custom Pipedrive MCP tools when the user asks to add, schedule, plan, or log a Pipedrive activity such as a task, follow-up, call, meeting, deadline, or email to do for a contact, company, deal, lead, or project. Do not use the official Pipedrive connector.
 ---
 
 # Pipedrive Add Activity
+
+This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
+tools whose names start with `pipedrive_`, such as `pipedrive_health_check` and
+`pipedrive_create_activity`. Do not use Anthropic's official Pipedrive connector,
+generic Pipedrive integrations, browser automation, or direct web/API calls.
+
+If no `pipedrive_` tools are available, stop and tell the operator that the
+Pipedrive MCP desktop extension is not connected. Do not continue with the
+official Pipedrive connector.
 
 Use this skill for requests like "ajoute une relance demain pour Jean", "prévois un appel avec Acme vendredi", "mets un mail à faire sur l'affaire Dupont", or "planifie une réunion avec ce prospect".
 

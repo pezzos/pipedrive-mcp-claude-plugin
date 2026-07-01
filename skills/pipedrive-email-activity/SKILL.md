@@ -1,9 +1,18 @@
 ---
 name: pipedrive-email-activity
-description: Use when the user asks to draft, prepare, or update an email-like follow-up in Pipedrive as an activity linked to a person, company, deal, or lead.
+description: Use with the custom Pipedrive MCP tools when the user asks to draft, prepare, or update an email-like follow-up in Pipedrive as an activity linked to a person, company, deal, or lead. Do not use the official Pipedrive connector.
 ---
 
 # Pipedrive Email Activity
+
+This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
+tools whose names start with `pipedrive_`, such as `pipedrive_health_check` and
+`pipedrive_create_activity`. Do not use Anthropic's official Pipedrive connector,
+generic Pipedrive integrations, browser automation, or direct web/API calls.
+
+If no `pipedrive_` tools are available, stop and tell the operator that the
+Pipedrive MCP desktop extension is not connected. Do not continue with the
+official Pipedrive connector.
 
 Use this skill when Claude must compose or refine the content of an email from CRM context. If the user already provided the full activity content and only wants it scheduled, use the Pipedrive add activity workflow instead.
 

@@ -1,9 +1,19 @@
 ---
 name: pipedrive-next-action
-description: Use when the user asks what to do next, how to follow up, how to prepare the next step, or which old/overdue Pipedrive tasks or activities should be handled first for a contact, company, deal, lead, or queue.
+description: Use with the custom Pipedrive MCP tools when the user asks what to do next, how to follow up, how to prepare the next step, or which old/overdue Pipedrive tasks or activities should be handled first for a contact, company, deal, lead, or queue. Do not use the official Pipedrive connector.
 ---
 
 # Pipedrive Next Action
+
+This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
+tools whose names start with `pipedrive_`, such as `pipedrive_health_check`,
+`pipedrive_list_activities`, and `pipedrive_search_persons`. Do not use
+Anthropic's official Pipedrive connector, generic Pipedrive integrations,
+browser automation, or direct web/API calls.
+
+If no `pipedrive_` tools are available, stop and tell the operator that the
+Pipedrive MCP desktop extension is not connected. Do not continue with the
+official Pipedrive connector.
 
 Use this skill for requests like "aide-moi à préparer la prochaine action pour Acme", "que dois-je faire avec Jean ?", "quelles relances sont les plus anciennes ?", or "prépare-moi la prochaine tâche sur cette affaire".
 

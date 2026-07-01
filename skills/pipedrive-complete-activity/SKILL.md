@@ -1,9 +1,19 @@
 ---
 name: pipedrive-complete-activity
-description: Use when the user says an activity, task, call, meeting, reminder, follow-up, or email todo has been done, should be marked done, rescheduled, postponed, or updated in Pipedrive.
+description: Use with the custom Pipedrive MCP tools when the user says an activity, task, call, meeting, reminder, follow-up, or email todo has been done, should be marked done, rescheduled, postponed, or updated in Pipedrive. Do not use the official Pipedrive connector.
 ---
 
 # Pipedrive Complete Activity
+
+This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
+tools whose names start with `pipedrive_`, such as `pipedrive_health_check`,
+`pipedrive_mark_activity_done`, and `pipedrive_reschedule_activity`. Do not use
+Anthropic's official Pipedrive connector, generic Pipedrive integrations,
+browser automation, or direct web/API calls.
+
+If no `pipedrive_` tools are available, stop and tell the operator that the
+Pipedrive MCP desktop extension is not connected. Do not continue with the
+official Pipedrive connector.
 
 Use this skill for requests like "j'ai fait l'appel avec Jean", "marque cette relance comme faite", "l'email est parti", "reporte cette tâche à vendredi", or "mets à jour cette activité".
 

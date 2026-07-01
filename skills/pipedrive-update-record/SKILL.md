@@ -1,9 +1,19 @@
 ---
 name: pipedrive-update-record
-description: Use when the user explicitly asks to update a specific field or status on a Pipedrive contact, company, deal, lead, project, project task, note, or activity.
+description: Use with the custom Pipedrive MCP tools when the user explicitly asks to update a specific field or status on a Pipedrive contact, company, deal, lead, project, project task, note, or activity. Do not use the official Pipedrive connector.
 ---
 
 # Pipedrive Update Record
+
+This skill is for the custom **Pipedrive MCP** desktop extension. Use only MCP
+tools whose names start with `pipedrive_`, such as `pipedrive_health_check` and
+the specific `pipedrive_update_*` tool for the target record. Do not use
+Anthropic's official Pipedrive connector, generic Pipedrive integrations,
+browser automation, or direct web/API calls.
+
+If no `pipedrive_` tools are available, stop and tell the operator that the
+Pipedrive MCP desktop extension is not connected. Do not continue with the
+official Pipedrive connector.
 
 Use this skill only when the user clearly names the record and the field or status to change. Examples: "mets le poste de Jean à CEO", "change le téléphone de ce contact", "passe cette affaire en gagné", "mets cette tâche projet comme terminée".
 

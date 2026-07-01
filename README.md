@@ -1,8 +1,16 @@
 # Pipedrive MCP
 
-Local Model Context Protocol server for Pipedrive CRM operations. It exposes
-read tools by default and can expose write, Mailbox, and delete tools through
-explicit environment flags.
+This repository ships the Claude Cowork skills for **Pipedrive MCP** and the
+Claude Desktop Extension (`.mcpb`) that installs the local MCP server.
+
+Use both pieces together:
+
+- Install `pipedrive-mcp-0.1.1.mcpb` in Claude Desktop for the actual local MCP
+  connector and editable API-key settings.
+- Import this repository as a Claude personal plugin marketplace for Cowork
+  skills. The repository plugin is intentionally skills-only; it does not define
+  its own MCP server because Claude's repository-plugin UI does not reliably
+  render editable connector configuration fields.
 
 ## What It Provides
 
@@ -26,7 +34,7 @@ version.
 
 ## Quick Start
 
-### Claude Desktop With Settings UI
+### Claude Desktop Connector With Settings UI
 
 Use the MCPB desktop extension when the operator needs editable settings fields
 for the Pipedrive company domain, API token, and feature flags.
@@ -41,22 +49,46 @@ Claude Desktop:
 5. Select `pipedrive-mcp-0.1.1.mcpb`.
 6. Fill the Pipedrive configuration fields in Claude's extension settings.
 
-This is the supported Claude Desktop path for API keys. The personal plugin
-repository import shows bundled Cowork skills and connectors, but its connector
-environment variables are displayed read-only in the current Claude Desktop UI.
+This is the supported Claude Desktop path for API keys. Do not paste API keys
+into a Claude conversation.
 
 ### Claude Cowork Plugin Repository
 
-In Claude Desktop Customize, add this repository as a personal plugin
-marketplace:
+After the MCPB is installed and configured, add this repository as a personal
+plugin marketplace for Cowork skills:
 
 ```text
 pezzos/pipedrive-mcp-claude-plugin
 ```
 
 Install `Pipedrive MCP` from the Personal tab. This provides the Cowork skills
-and the bundled MCP connector. Use the MCPB path above when the operator needs
-Claude Desktop to render API-key fields.
+only. The actual connector is the desktop extension installed from the `.mcpb`.
+
+After installing or updating either piece, start a new Claude/Cowork session and
+run a smoke test:
+
+```text
+Use Pipedrive MCP only. Run the pipedrive_health_check tool and report whether
+Pipedrive MCP is connected. Do not use the official Pipedrive connector.
+```
+
+If Claude says no `pipedrive_` tools are available, the desktop extension is not
+visible to that session. Restart Claude Desktop and start a new session.
+
+### Updates
+
+Repository plugin updates are used for skills and documentation:
+
+1. Open Customize.
+2. Go to Plugins > Personal.
+3. Open the `pipedrive-mcp-claude-plugin` marketplace menu.
+4. Click "Check for updates".
+5. Update `Pipedrive MCP` when Claude offers a newer version.
+
+Desktop connector updates use a new `.mcpb` file. Keep the extension name
+`pipedrive-mcp` across versions so Claude preserves saved settings. Reinstalling
+a newer `pipedrive-mcp-x.y.z.mcpb` updates the local server while keeping the
+operator's configured API key.
 
 ### Development Checkout
 
