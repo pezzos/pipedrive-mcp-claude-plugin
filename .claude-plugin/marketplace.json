@@ -9,7 +9,7 @@
       "name": "pipedrive-mcp",
       "displayName": "Pipedrive MCP",
       "description": "Claude Cowork skills for the Pipedrive MCP Desktop Extension.",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "source": "./",
       "author": {
         "name": "PezzosLabs"

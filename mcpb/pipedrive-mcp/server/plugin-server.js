@@ -14413,10 +14413,11 @@ function clean(value) {
 
 // src/config.ts
 function loadConfig(env = process.env) {
-  const companyDomain = clean2(env.PIPEDRIVE_COMPANY_DOMAIN);
+  const companyDomain = normalizeCompanyDomain(clean2(env.PIPEDRIVE_COMPANY_DOMAIN));
   const apiToken = clean2(env.PIPEDRIVE_API_TOKEN);
   const accessToken = clean2(env.PIPEDRIVE_ACCESS_TOKEN);
-  const baseUrl = clean2(env.PIPEDRIVE_BASE_URL) ?? defaultBaseUrl(companyDomain);
+  const explicitBaseUrl = normalizeBaseUrl(clean2(env.PIPEDRIVE_BASE_URL));
+  const baseUrl = explicitBaseUrl ?? defaultBaseUrl(companyDomain);
   const allowMockBaseUrl = env.PIPEDRIVE_ALLOW_MOCK_BASE_URL === "true";
   const enableWrites = env.PIPEDRIVE_ENABLE_WRITES === "true";
   const enableDeleteTools = env.PIPEDRIVE_ENABLE_DELETE_TOOLS === "true";
@@ -14427,6 +14428,7 @@ function loadConfig(env = process.env) {
     accessToken,
     companyDomain,
     baseUrl,
+    baseUrlSource: explicitBaseUrl ? "explicit" : companyDomain ? "company_domain" : "missing",
     allowMockBaseUrl,
     enableWrites,
     enableDeleteTools,
@@ -14455,11 +14457,43 @@ function clean2(value) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : void 0;
 }
+function normalizeCompanyDomain(value) {
+  if (!value) {
+    return void 0;
+  }
+  const hostname = hostnameFromMaybeUrl(value);
+  const normalized = stripPipedriveSuffix(hostname);
+  return normalized && /^[a-z0-9-]+$/i.test(normalized) ? normalized : value;
+}
+function normalizeBaseUrl(value) {
+  if (!value) {
+    return void 0;
+  }
+  const trimmed = value.replace(/\/+$/, "");
+  if (/^[a-z0-9-]+$/i.test(trimmed)) {
+    return defaultBaseUrl(trimmed);
+  }
+  if (/^[a-z0-9-]+\.pipedrive\.com$/i.test(trimmed)) {
+    return `https://${trimmed}`;
+  }
+  return trimmed;
+}
 function defaultBaseUrl(companyDomain) {
   if (!companyDomain) {
     return "";
   }
   return `https://${companyDomain}.pipedrive.com`;
+}
+function hostnameFromMaybeUrl(value) {
+  try {
+    const candidate = value.includes("://") ? value : `https://${value}`;
+    return new URL(candidate).hostname.toLowerCase();
+  } catch {
+    return value.toLowerCase().replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+  }
+}
+function stripPipedriveSuffix(value) {
+  return value.toLowerCase().endsWith(".pipedrive.com") ? value.slice(0, -".pipedrive.com".length) : value;
 }
 function isAllowedBaseUrl(baseUrl, allowMockBaseUrl) {
   let parsed;
@@ -22926,7 +22960,7 @@ function isRecord2(value) {
 function buildServer(config3, client = new PipedriveClient(config3)) {
   const server2 = new McpServer({
     name: "pipedrive-mcp",
-    version: "0.1.0"
+    version: "0.1.6"
   });
   server2.registerTool(
     "pipedrive_health_check",
@@ -22944,6 +22978,7 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
         access_token_configured: Boolean(config3.accessToken),
         company_domain_configured: Boolean(config3.companyDomain),
         base_url_configured: Boolean(config3.baseUrl),
+        base_url_source: config3.baseUrlSource,
         mock_base_url_allowed: config3.allowMockBaseUrl,
         writes_enabled: config3.enableWrites,
         delete_tools_enabled: config3.enableWrites && config3.enableDeleteTools,
