@@ -1,29 +1,19 @@
 {
   "name": "pezzoslabs-pipedrive",
-  "description": "PezzosLabs Claude plugins for Pipedrive CRM workflows.",
+  "description": "PezzosLabs plugins for Pipedrive workflows.",
   "owner": {
     "name": "PezzosLabs"
   },
   "plugins": [
     {
       "name": "pipedrive-mcp",
-      "displayName": "Pipedrive MCP",
-      "description": "Claude Cowork skills for the Pipedrive MCP Desktop Extension.",
-      "version": "0.1.6",
-      "source": "./",
+      "source": ".",
+      "description": "Pipedrive skills for the Pipedrive MCP connector.",
+      "version": "0.3.0",
       "author": {
         "name": "PezzosLabs"
       },
-      "license": "MIT",
-      "category": "Productivity",
-      "tags": [
-        "pipedrive",
-        "crm",
-        "sales",
-        "cowork"
-      ],
-      "defaultEnabled": false,
-      "skills": "./skills/"
+      "license": "MIT"
     }
   ]
 }

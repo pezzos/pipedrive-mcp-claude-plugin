@@ -1,0 +1,47 @@
+{
+  "version": "0.3.0",
+  "skills": [
+    {
+      "name": "pipedrive-add-activity",
+      "versioned": "pipedrive-add-activity-0.3.0.zip",
+      "latest": "pipedrive-add-activity-latest.zip",
+      "content_sha256": "0b55f48a1a27169ffdde62504f825e6b2f7cc5d6606a41924943406c95f69b73"
+    },
+    {
+      "name": "pipedrive-add-note",
+      "versioned": "pipedrive-add-note-0.3.0.zip",
+      "latest": "pipedrive-add-note-latest.zip",
+      "content_sha256": "b2c0eea066debc8250111fbe941c719cb2dc58b4625a1e398a7b421f5e747610"
+    },
+    {
+      "name": "pipedrive-complete-activity",
+      "versioned": "pipedrive-complete-activity-0.3.0.zip",
+      "latest": "pipedrive-complete-activity-latest.zip",
+      "content_sha256": "193135e88bbe7b2f14bd0e8d7a5307ce022fba63a24ac469520ae4ec4f9ebb34"
+    },
+    {
+      "name": "pipedrive-dictation-aliases",
+      "versioned": "pipedrive-dictation-aliases-0.3.0.zip",
+      "latest": "pipedrive-dictation-aliases-latest.zip",
+      "content_sha256": "69cab5eea67c7ca6efb5c5444d9fc89090f0a33097f6b24e7d1750243c619832"
+    },
+    {
+      "name": "pipedrive-email-activity",
+      "versioned": "pipedrive-email-activity-0.3.0.zip",
+      "latest": "pipedrive-email-activity-latest.zip",
+      "content_sha256": "853cbc9ff2aee8268a92dd63c95f77a6d469c921e0ff01ad24ef17663fbb93dd"
+    },
+    {
+      "name": "pipedrive-next-action",
+      "versioned": "pipedrive-next-action-0.3.0.zip",
+      "latest": "pipedrive-next-action-latest.zip",
+      "content_sha256": "630c8060292338bb4c7638b261e7d2284d50672aebf963f6689abe05e5577ed3"
+    },
+    {
+      "name": "pipedrive-update-record",
+      "versioned": "pipedrive-update-record-0.3.0.zip",
+      "latest": "pipedrive-update-record-latest.zip",
+      "content_sha256": "46c105fd347aecfb9a16e4b30fc5afe9834ba9293623f4b0f5b5171d697fb462"
+    }
+  ]
+}

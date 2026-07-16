@@ -2558,8 +2558,8 @@ var require_resolve = __commonJS({
       }
       return count;
     }
-    function getFullPath(resolver, id = "", normalize2) {
-      if (normalize2 !== false)
+    function getFullPath(resolver, id = "", normalize) {
+      if (normalize !== false)
         id = normalizeId(id);
       const p = resolver.parse(id);
       return _getFullPath(resolver, p);
@@ -3955,7 +3955,7 @@ var require_fast_uri = __commonJS({
     "use strict";
     var { normalizeIPv6, removeDotSegments, recomposeAuthority, normalizePercentEncoding, normalizePathEncoding, escapePreservingEscapes, reescapeHostDelimiters, isIPv4, nonSimpleDomain } = require_utils();
     var { SCHEMES, getSchemeHandler } = require_schemes();
-    function normalize2(uri, options) {
+    function normalize(uri, options) {
       if (typeof uri === "string") {
         uri = /** @type {T} */
         normalizeString(uri, options);
@@ -4222,7 +4222,7 @@ var require_fast_uri = __commonJS({
     }
     var fastUri = {
       SCHEMES,
-      normalize: normalize2,
+      normalize,
       resolve: resolve2,
       resolveComponent,
       equal,
@@ -14258,165 +14258,12 @@ var StdioServerTransport = class {
   }
 };
 
-// src/server.ts
-import { fileURLToPath as fileURLToPath3 } from "node:url";
-
-// src/claudeBridge.ts
-import { chmodSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node:fs";
-import { basename, dirname, join, normalize } from "node:path";
-import { fileURLToPath } from "node:url";
-var managedEnvFlag = "PIPEDRIVE_MANAGED_BY_PIPEDRIVE_MCP_EXTENSION";
-function maybeSyncClaudeDesktopConfig(config3, options = {}) {
-  const env = options.env ?? process.env;
-  const serverPath = options.serverPath ?? fileURLToPath(import.meta.url);
-  if (env.PIPEDRIVE_SYNC_CLAUDE_DESKTOP_CONFIG === "false") {
-    return false;
-  }
-  if (!isClaudeDesktopExtensionServerPath(serverPath)) {
-    return false;
-  }
-  if (!hasMinimumBridgeConfig(config3, env)) {
-    return false;
-  }
-  const configPath = claudeDesktopConfigPath(options);
-  if (!configPath) {
-    return false;
-  }
-  try {
-    mkdirSync(dirname(configPath), { recursive: true });
-    const existing = readClaudeDesktopConfig(configPath);
-    const serverName = chooseServerName(existing, env.PIPEDRIVE_CLAUDE_MCP_SERVER_NAME);
-    const managedServer = buildManagedServerConfig(config3, env, serverPath, managedNodeCommand(env, options.execPath ?? process.execPath));
-    if (isSameConfig(existing.mcpServers?.[serverName], managedServer)) {
-      return true;
-    }
-    existing.mcpServers = {
-      ...existing.mcpServers ?? {},
-      [serverName]: managedServer
-    };
-    writeClaudeDesktopConfig(configPath, existing);
-    return true;
-  } catch (error2) {
-    console.error(`Failed to sync Claude Desktop MCP config: ${error2 instanceof Error ? error2.message : String(error2)}`);
-    return false;
-  }
-}
-function claudeDesktopConfigPath(options = {}) {
-  const env = options.env ?? process.env;
-  const platform = options.platform ?? process.platform;
-  const home = options.homeDir ?? env.HOME ?? env.USERPROFILE;
-  if (!home) {
-    return void 0;
-  }
-  if (platform === "darwin") {
-    return join(home, "Library", "Application Support", "Claude", "claude_desktop_config.json");
-  }
-  if (platform === "win32") {
-    const appData = env.APPDATA ?? join(home, "AppData", "Roaming");
-    return join(appData, "Claude", "claude_desktop_config.json");
-  }
-  const configHome = env.XDG_CONFIG_HOME ?? join(home, ".config");
-  return join(configHome, "Claude", "claude_desktop_config.json");
-}
-function isClaudeDesktopExtensionServerPath(serverPath) {
-  const normalized = normalize(serverPath);
-  return normalized.includes(normalize("Claude Extensions")) && normalized.includes("local.mcpb.");
-}
-function hasMinimumBridgeConfig(config3, env) {
-  const hasToken = Boolean(config3.apiToken || config3.accessToken);
-  const hasBase = Boolean(config3.companyDomain || clean(env.PIPEDRIVE_BASE_URL));
-  return hasToken && hasBase;
-}
-function readClaudeDesktopConfig(configPath) {
-  if (!existsSync(configPath)) {
-    return {};
-  }
-  const text = readFileSync(configPath, "utf8").trim();
-  if (!text) {
-    return {};
-  }
-  const parsed = JSON.parse(text);
-  if (parsed.mcpServers && (typeof parsed.mcpServers !== "object" || Array.isArray(parsed.mcpServers))) {
-    throw new Error("claude_desktop_config.json has a non-object mcpServers field");
-  }
-  return parsed;
-}
-function chooseServerName(config3, requestedName) {
-  const preferred = clean(requestedName) ?? "pipedrive";
-  const existing = config3.mcpServers?.[preferred];
-  if (!existing || isManagedServer(existing)) {
-    return preferred;
-  }
-  const fallback = preferred === "pipedrive-mcp" ? "pipedrive-mcp-extension" : "pipedrive-mcp";
-  const fallbackExisting = config3.mcpServers?.[fallback];
-  if (!fallbackExisting || isManagedServer(fallbackExisting)) {
-    return fallback;
-  }
-  throw new Error(`Claude Desktop MCP config already has user-managed '${preferred}' and '${fallback}' servers`);
-}
-function isManagedServer(value) {
-  if (!value || typeof value !== "object") {
-    return false;
-  }
-  const env = value.env;
-  return Boolean(env && typeof env === "object" && env[managedEnvFlag] === "true");
-}
-function buildManagedServerConfig(config3, env, serverPath, nodeCommand) {
-  return {
-    command: nodeCommand,
-    args: [serverPath],
-    env: {
-      PIPEDRIVE_LOAD_DOTENV: "false",
-      PIPEDRIVE_COMPANY_DOMAIN: config3.companyDomain ?? "",
-      PIPEDRIVE_BASE_URL: clean(env.PIPEDRIVE_BASE_URL) ?? "",
-      PIPEDRIVE_API_TOKEN: config3.apiToken ?? "",
-      PIPEDRIVE_ACCESS_TOKEN: config3.accessToken ?? "",
-      PIPEDRIVE_ENABLE_WRITES: String(config3.enableWrites),
-      PIPEDRIVE_ENABLE_MAILBOX_TOOLS: String(config3.enableMailboxTools),
-      PIPEDRIVE_ENABLE_DELETE_TOOLS: String(config3.enableDeleteTools),
-      PIPEDRIVE_REQUEST_TIMEOUT_MS: String(config3.requestTimeoutMs),
-      PIPEDRIVE_SYNC_CLAUDE_DESKTOP_CONFIG: "false",
-      [managedEnvFlag]: "true"
-    }
-  };
-}
-function managedNodeCommand(env, execPath) {
-  const override = clean(env.PIPEDRIVE_CLAUDE_MCP_COMMAND);
-  if (override) {
-    return override;
-  }
-  const executable = basename(execPath).toLowerCase();
-  if (executable === "node" || executable.startsWith("node.")) {
-    return execPath;
-  }
-  return "node";
-}
-function isSameConfig(left, right) {
-  return JSON.stringify(left) === JSON.stringify(right);
-}
-function writeClaudeDesktopConfig(configPath, config3) {
-  const tempPath = `${configPath}.tmp-${process.pid}-${Date.now()}`;
-  try {
-    writeFileSync(tempPath, `${JSON.stringify(config3, null, 2)}
-`, { encoding: "utf8", mode: 384 });
-    chmodSync(tempPath, 384);
-    renameSync(tempPath, configPath);
-  } catch (error2) {
-    rmSync(tempPath, { force: true });
-    throw error2;
-  }
-}
-function clean(value) {
-  const trimmed = value?.trim();
-  return trimmed ? trimmed : void 0;
-}
-
 // src/config.ts
-function loadConfig(env = process.env) {
-  const companyDomain = normalizeCompanyDomain(clean2(env.PIPEDRIVE_COMPANY_DOMAIN));
-  const apiToken = clean2(env.PIPEDRIVE_API_TOKEN);
-  const accessToken = clean2(env.PIPEDRIVE_ACCESS_TOKEN);
-  const explicitBaseUrl = normalizeBaseUrl(clean2(env.PIPEDRIVE_BASE_URL));
+function loadConfig(env = processEnvironment()) {
+  const companyDomain = normalizeCompanyDomain(clean(env.PIPEDRIVE_COMPANY_DOMAIN));
+  const apiToken = clean(env.PIPEDRIVE_API_TOKEN);
+  const accessToken = clean(env.PIPEDRIVE_ACCESS_TOKEN);
+  const explicitBaseUrl = normalizeBaseUrl(clean(env.PIPEDRIVE_BASE_URL));
   const baseUrl = explicitBaseUrl ?? defaultBaseUrl(companyDomain);
   const allowMockBaseUrl = env.PIPEDRIVE_ALLOW_MOCK_BASE_URL === "true";
   const enableWrites = env.PIPEDRIVE_ENABLE_WRITES === "true";
@@ -14436,6 +14283,9 @@ function loadConfig(env = process.env) {
     requestTimeoutMs: Number.isFinite(requestTimeoutMs) && requestTimeoutMs > 0 ? requestTimeoutMs : 1e4
   };
 }
+function processEnvironment() {
+  return globalThis.process?.env ?? {};
+}
 function requireConfigured(config3) {
   const missing = [];
   if (!config3.apiToken && !config3.accessToken) {
@@ -14453,7 +14303,7 @@ function requireConfigured(config3) {
     );
   }
 }
-function clean2(value) {
+function clean(value) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : void 0;
 }
@@ -14517,9 +14367,9 @@ function isLoopbackBaseUrl(parsed) {
 
 // src/env.ts
 var import_dotenv = __toESM(require_main(), 1);
-import { existsSync as existsSync2 } from "node:fs";
-import { dirname as dirname2, resolve } from "node:path";
-import { fileURLToPath as fileURLToPath2 } from "node:url";
+import { existsSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 var runtimeEnvKeys = {
   enableWrites: "PIPEDRIVE_ENABLE_WRITES",
   enableDeleteTools: "PIPEDRIVE_ENABLE_DELETE_TOOLS",
@@ -14531,6 +14381,7 @@ var diagnostics = {
   dotenvLoadingEnabled: process.env.PIPEDRIVE_LOAD_DOTENV?.toLowerCase() !== "false",
   dotenvLocalFilePresent: false,
   dotenvLoaded: false,
+  dotenvLoadFailed: false,
   preexisting: hasRuntimeEnvKeys(process.env),
   current: hasRuntimeEnvKeys(process.env)
 };
@@ -14543,6 +14394,7 @@ function loadRuntimeEnv(options = {}) {
     dotenvLoadingEnabled,
     dotenvLocalFilePresent: false,
     dotenvLoaded: false,
+    dotenvLoadFailed: false,
     preexisting,
     current: hasRuntimeEnvKeys(env)
   };
@@ -14551,7 +14403,7 @@ function loadRuntimeEnv(options = {}) {
   }
   const packageDir = options.packageDir ?? defaultPackageDir();
   const localDotenv = resolve(packageDir, ".env");
-  const dotenvLocalFilePresent = existsSync2(localDotenv);
+  const dotenvLocalFilePresent = existsSync(localDotenv);
   diagnostics = {
     ...diagnostics,
     dotenvLocalFilePresent
@@ -14566,7 +14418,12 @@ function loadRuntimeEnv(options = {}) {
     processEnv: env
   });
   if (result.error) {
-    throw new Error(`Failed to load runtime .env file: ${formatError2(result.error)}`);
+    diagnostics = {
+      ...diagnostics,
+      dotenvLoadFailed: true,
+      current: hasRuntimeEnvKeys(env)
+    };
+    return;
   }
   diagnostics = {
     ...diagnostics,
@@ -14582,10 +14439,7 @@ function getRuntimeEnvDiagnostics() {
   };
 }
 function defaultPackageDir() {
-  return dirname2(dirname2(fileURLToPath2(import.meta.url)));
-}
-function formatError2(error2) {
-  return error2 instanceof Error ? error2.message : String(error2);
+  return dirname(dirname(fileURLToPath(import.meta.url)));
 }
 function hasRuntimeEnvKeys(env) {
   return {
@@ -22556,35 +22410,55 @@ var PipedriveClient = class {
     requireConfigured(this.config);
     const url = this.url(path, params);
     const encodedBody = body === void 0 ? void 0 : encodeBody(body, bodyFormat);
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), this.config.requestTimeoutMs);
-    let response;
-    try {
-      response = await this.fetchImpl(url, {
-        method,
-        headers: {
-          ...authHeaders(this.config),
-          ...encodedBody ? { "content-type": contentType(bodyFormat) } : {}
-        },
-        signal: controller.signal,
-        body: encodedBody
-      });
-    } catch (error2) {
-      if (error2 instanceof Error && error2.name === "AbortError") {
-        throw new Error(`Pipedrive API ${method} ${path} timed out`);
+    const maxAttempts = method === "GET" ? 3 : 1;
+    let remainingRetryDelayMs = 5e3;
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), this.config.requestTimeoutMs);
+      let response;
+      let text;
+      try {
+        response = await this.fetchImpl(url, {
+          method,
+          headers: {
+            ...authHeaders(this.config),
+            ...encodedBody ? { "content-type": contentType(bodyFormat) } : {}
+          },
+          signal: controller.signal,
+          body: encodedBody
+        });
+        text = await response.text();
+      } catch (error2) {
+        if (error2 instanceof Error && error2.name === "AbortError") {
+          throw new Error(`Pipedrive API ${method} ${path} timed out`);
+        }
+        if (method === "GET" && attempt < maxAttempts) {
+          const retryDelay = defaultRetryDelayMs(attempt);
+          remainingRetryDelayMs -= retryDelay;
+          await sleep(retryDelay);
+          continue;
+        }
+        throw error2;
+      } finally {
+        clearTimeout(timeout);
       }
-      throw error2;
-    } finally {
-      clearTimeout(timeout);
+      const data = text ? safeJsonParse(text) : null;
+      if (!response.ok) {
+        if (method === "GET" && attempt < maxAttempts && isTransientStatus(response.status)) {
+          const retryDelay = retryDelayMs(response.headers.get("retry-after"), attempt);
+          if (retryDelay !== void 0 && retryDelay <= remainingRetryDelayMs) {
+            remainingRetryDelayMs -= retryDelay;
+            await sleep(retryDelay);
+            continue;
+          }
+        }
+        throw new Error(
+          redactSecretMarkers(`Pipedrive API ${method} ${path} failed with ${response.status}: ${summarizeError(data)}`)
+        );
+      }
+      return data;
     }
-    const text = await response.text();
-    const data = text ? safeJsonParse(text) : null;
-    if (!response.ok) {
-      throw new Error(
-        redactSecretMarkers(`Pipedrive API ${method} ${path} failed with ${response.status}: ${summarizeError(data)}`)
-      );
-    }
-    return data;
+    throw new Error(`Pipedrive API ${method} ${path} failed after ${maxAttempts} attempts`);
   }
   url(path, params) {
     const base = this.config.baseUrl.replace(/\/$/, "");
@@ -22597,6 +22471,31 @@ var PipedriveClient = class {
     return url;
   }
 };
+function isTransientStatus(status) {
+  return status === 429 || status === 502 || status === 503 || status === 504;
+}
+function retryDelayMs(retryAfter, attempt) {
+  const maximumServerDelayMs = 5e3;
+  if (retryAfter) {
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds >= 0) {
+      const delay = seconds * 1e3;
+      return delay <= maximumServerDelayMs ? delay : void 0;
+    }
+    const timestamp = Date.parse(retryAfter);
+    if (Number.isFinite(timestamp)) {
+      const delay = Math.max(timestamp - Date.now(), 0);
+      return delay <= maximumServerDelayMs ? delay : void 0;
+    }
+  }
+  return defaultRetryDelayMs(attempt);
+}
+function defaultRetryDelayMs(attempt) {
+  return Math.min(50 * 2 ** (attempt - 1), 200);
+}
+function sleep(milliseconds) {
+  return new Promise((resolve2) => setTimeout(resolve2, milliseconds));
+}
 function authHeaders(config3) {
   if (config3.accessToken) {
     return { Authorization: `Bearer ${config3.accessToken}` };
@@ -22645,6 +22544,25 @@ function redactSecretMarkers(value) {
 }
 function isRecord(value) {
   return typeof value === "object" && value !== null;
+}
+
+// src/runtimeDiagnostics.ts
+function unavailableRuntimeEnvDiagnostics() {
+  const keys = {
+    enableWrites: false,
+    enableDeleteTools: false,
+    enableMailboxTools: false,
+    loadDotenv: false
+  };
+  return {
+    initialized: false,
+    dotenvLoadingEnabled: false,
+    dotenvLocalFilePresent: false,
+    dotenvLoaded: false,
+    dotenvLoadFailed: false,
+    preexisting: { ...keys },
+    current: { ...keys }
+  };
 }
 
 // src/tools.ts
@@ -22799,6 +22717,11 @@ function requireTaskMilestoneDueDate(body, existingTask) {
 function requireOneDefinedField(body, fields, label) {
   if (fields.every((field) => body[field] === void 0)) {
     throw new Error(`${label} requires at least one field: ${fields.join(", ")}`);
+  }
+}
+function requireUpdatePayload(payload, label) {
+  if (Reflect.ownKeys(payload).every((key) => payload[key] === void 0)) {
+    throw new Error(`${label} requires at least one field to update`);
   }
 }
 function normalizeTaskResponse(response) {
@@ -22957,10 +22880,10 @@ function mailboxProbeSummary(response) {
 function isRecord2(value) {
   return typeof value === "object" && value !== null;
 }
-function buildServer(config3, client = new PipedriveClient(config3)) {
+function buildServer(config3, client = new PipedriveClient(config3), options = {}) {
   const server2 = new McpServer({
     name: "pipedrive-mcp",
-    version: "0.1.6"
+    version: "0.3.0"
   });
   server2.registerTool(
     "pipedrive_health_check",
@@ -22971,7 +22894,8 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
       annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false }
     },
     async () => {
-      const envDiagnostics = getRuntimeEnvDiagnostics();
+      const envDiagnostics = options.runtimeEnvDiagnostics?.() ?? unavailableRuntimeEnvDiagnostics();
+      const configuration = configurationStatus(config3);
       return jsonResult({
         token_configured: Boolean(config3.apiToken || config3.accessToken),
         api_token_configured: Boolean(config3.apiToken),
@@ -22979,15 +22903,19 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
         company_domain_configured: Boolean(config3.companyDomain),
         base_url_configured: Boolean(config3.baseUrl),
         base_url_source: config3.baseUrlSource,
+        configuration_valid: configuration.valid,
+        configuration_error: configuration.error,
         mock_base_url_allowed: config3.allowMockBaseUrl,
         writes_enabled: config3.enableWrites,
         delete_tools_enabled: config3.enableWrites && config3.enableDeleteTools,
-        mailbox_tools_enabled: config3.enableWrites && config3.enableMailboxTools,
+        mailbox_tools_enabled: config3.enableMailboxTools,
+        mailbox_link_enabled: config3.enableWrites && config3.enableMailboxTools,
         request_timeout_ms: config3.requestTimeoutMs,
         runtime_env_diagnostics_initialized: envDiagnostics.initialized,
         dotenv_loading_enabled: envDiagnostics.dotenvLoadingEnabled,
         dotenv_local_file_present: envDiagnostics.dotenvLocalFilePresent,
         dotenv_loaded: envDiagnostics.dotenvLoaded,
+        dotenv_load_failed: envDiagnostics.dotenvLoadFailed,
         runtime_env_preexisting_enable_writes: envDiagnostics.preexisting.enableWrites,
         runtime_env_preexisting_enable_delete_tools: envDiagnostics.preexisting.enableDeleteTools,
         runtime_env_preexisting_enable_mailbox_tools: envDiagnostics.preexisting.enableMailboxTools,
@@ -23426,7 +23354,7 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
     },
     async ({ deal_id, ...args }) => jsonResult(await client.get(`/api/v1/deals/${deal_id}/files`, args))
   );
-  if (config3.enableWrites && config3.enableMailboxTools) {
+  if (config3.enableMailboxTools) {
     server2.registerTool(
       "pipedrive_list_deal_mail_messages",
       {
@@ -23502,31 +23430,33 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
         })
       )
     );
-    server2.registerTool(
-      "pipedrive_link_mail_thread",
-      {
-        description: "Link a Pipedrive mailbox thread to exactly one deal or lead. Defaults to dry-run and does not change read, archive, sharing or deletion state.",
-        inputSchema: {
-          mail_thread_id: number2().int().positive(),
-          deal_id: number2().int().positive().optional(),
-          lead_id: string2().uuid().optional(),
-          ...writeGuardSchema,
-          validate_links: boolean2().default(true)
+    if (config3.enableWrites) {
+      server2.registerTool(
+        "pipedrive_link_mail_thread",
+        {
+          description: "Link a Pipedrive mailbox thread to exactly one deal or lead. Defaults to dry-run and does not change read, archive, sharing or deletion state.",
+          inputSchema: {
+            mail_thread_id: number2().int().positive(),
+            deal_id: number2().int().positive().optional(),
+            lead_id: string2().uuid().optional(),
+            ...writeGuardSchema,
+            validate_links: boolean2().default(true)
+          },
+          annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
         },
-        annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true }
-      },
-      async ({ mail_thread_id, deal_id, lead_id, dry_run, validate_links }) => {
-        requireExactlyOneMailThreadLink(deal_id, lead_id);
-        const payload = { deal_id, lead_id };
-        const refs = [dealRef(deal_id), leadRef(lead_id)];
-        const validated_links = await validateLinksIfRequested(client, validate_links, refs);
-        const writeGate = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
-        if (writeGate) {
-          return writeGate;
+        async ({ mail_thread_id, deal_id, lead_id, dry_run, validate_links }) => {
+          requireExactlyOneMailThreadLink(deal_id, lead_id);
+          const payload = { deal_id, lead_id };
+          const refs = [dealRef(deal_id), leadRef(lead_id)];
+          const validated_links = await validateLinksIfRequested(client, validate_links, refs);
+          const writeGate = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
+          if (writeGate) {
+            return writeGate;
+          }
+          return jsonResult(await client.putForm(`/api/v1/mailbox/mailThreads/${mail_thread_id}`, payload));
         }
-        return jsonResult(await client.putForm(`/api/v1/mailbox/mailThreads/${mail_thread_id}`, payload));
-      }
-    );
+      );
+    }
   }
   server2.registerTool(
     "pipedrive_list_project_boards",
@@ -23780,6 +23710,7 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
       },
       async ({ project_id, dry_run, validate_links, ...body }) => {
         const payload = projectPayload(body);
+        requireUpdatePayload(payload, "pipedrive_update_project");
         const refs = [
           projectRef(project_id),
           boardRef(body.board_id),
@@ -23901,6 +23832,7 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
       },
       async ({ task_id, dry_run, validate_links, ...body }) => {
         const payload = taskPayload(body);
+        requireUpdatePayload(payload, "pipedrive_update_task");
         const refs = [taskRef(task_id), projectRef(body.project_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
         const milestoneDueDateNeedsRead = body.milestone === true && body.due_date === void 0;
@@ -24032,6 +23964,7 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
       },
       async ({ deal_id, dry_run, validate_links, custom_fields, ...body }) => {
         const payload = withCustomFields(body, custom_fields);
+        requireUpdatePayload(payload, "pipedrive_update_deal");
         const refs = [dealRef(deal_id), personRef(body.person_id), organizationRef(body.org_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
         const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
@@ -24234,6 +24167,7 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
       },
       async ({ person_id, dry_run, validate_links, custom_fields, ...body }) => {
         const payload = withCustomFields(personPayload(body), custom_fields);
+        requireUpdatePayload(payload, "pipedrive_update_person");
         const refs = [personRef(person_id), organizationRef(body.org_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
         const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
@@ -24282,6 +24216,7 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
       },
       async ({ organization_id, dry_run, validate_links, custom_fields, ...body }) => {
         const payload = withCustomFields(body, custom_fields);
+        requireUpdatePayload(payload, "pipedrive_update_organization");
         const refs = [organizationRef(organization_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
         const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
@@ -24340,6 +24275,7 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
       },
       async ({ lead_id, dry_run, validate_links, custom_fields, organization_id, person_id, ...body }) => {
         const payload = withCustomFields(leadPayload({ ...body, person_id, organization_id }), custom_fields);
+        requireUpdatePayload(payload, "pipedrive_update_lead");
         const refs = [leadRef(lead_id), personRef(person_id), organizationRef(organization_id)];
         const validated_links = await validateLinksIfRequested(client, validate_links, refs);
         const dryRunResult = guardedWriteResult(config3, { dry_run }, payload, { validated_links });
@@ -24442,6 +24378,7 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
       },
       async ({ activity_id, dry_run, validate_links, ...body }) => {
         const payload = activityPayload(body);
+        requireUpdatePayload(payload, "pipedrive_update_activity");
         const refs = [
           activityRef(activity_id),
           dealRef(body.deal_id),
@@ -24739,6 +24676,17 @@ function buildServer(config3, client = new PipedriveClient(config3)) {
   }
   return server2;
 }
+function configurationStatus(config3) {
+  try {
+    requireConfigured(config3);
+    return { valid: true };
+  } catch (error2) {
+    return {
+      valid: false,
+      error: error2 instanceof Error ? error2.message : "Invalid Pipedrive configuration"
+    };
+  }
+}
 function jsonResult(value) {
   return {
     content: [
@@ -24753,7 +24701,8 @@ function jsonResult(value) {
 // src/server.ts
 loadRuntimeEnv();
 var config2 = loadConfig();
-maybeSyncClaudeDesktopConfig(config2, { serverPath: fileURLToPath3(import.meta.url) });
-var server = buildServer(config2);
+var server = buildServer(config2, void 0, {
+  runtimeEnvDiagnostics: getRuntimeEnvDiagnostics
+});
 var transport = new StdioServerTransport();
 await server.connect(transport);
