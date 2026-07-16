@@ -22883,7 +22883,7 @@ function isRecord2(value) {
 function buildServer(config3, client = new PipedriveClient(config3), options = {}) {
   const server2 = new McpServer({
     name: "pipedrive-mcp",
-    version: "0.3.1"
+    version: "0.3.2"
   });
   server2.registerTool(
     "pipedrive_health_check",

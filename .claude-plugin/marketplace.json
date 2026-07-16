@@ -1,15 +1,15 @@
 {
-  "name": "pezzoslabs-pipedrive",
-  "description": "PezzosLabs plugins for Pipedrive workflows.",
+  "name": "pezzoslabs-pipedrive-staging",
+  "description": "PezzosLabs staging marketplace for Pipedrive workflows.",
   "owner": {
     "name": "PezzosLabs"
   },
   "plugins": [
     {
       "name": "pipedrive-mcp",
-      "source": "./",
+      "source": "./plugin",
       "description": "Pipedrive skills for the Pipedrive MCP connector.",
-      "version": "0.3.1",
+      "version": "0.3.2",
       "author": {
         "name": "PezzosLabs"
       },
