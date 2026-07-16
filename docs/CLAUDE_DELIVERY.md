@@ -1,6 +1,6 @@
 # Claude Delivery
 
-Version `0.3.2` produces three delivery families from one source repository:
+Version `0.3.3` produces three delivery families from one source repository:
 
 | Artifact | Audience | Surfaces | Connector |
 | --- | --- | --- | --- |
@@ -44,7 +44,7 @@ Outputs:
 ```text
 dist/claude-skills/
   manifest.json
-  <skill>-0.3.2.zip
+  <skill>-0.3.3.zip
   <skill>-latest.zip
 
 dist/claude-plugin/pipedrive-mcp/
@@ -60,7 +60,14 @@ dist/release/pipedrive-mcp-claude-plugin/
     .mcp.json
     skills/
   standalone-skills/
-  pipedrive-mcp-0.3.2.mcpb
+    manifest.json
+    README.md
+
+dist/release/assets/
+  <skill>-0.3.3.zip
+  <skill>-latest.zip
+  standalone-skills-manifest.json
+  pipedrive-mcp-0.3.3.mcpb
   pipedrive-mcp-latest.mcpb
 ```
 
@@ -68,6 +75,12 @@ Every standalone ZIP contains exactly one top-level skill folder with its
 `SKILL.md` and optional resources. `manifest.json` records a normalized content
 SHA-256 that ignores ZIP timestamps. A release refuses to reuse an existing
 version when plugin or standalone-skill content differs.
+
+Claude's hosted marketplace installer scans the complete repository snapshot
+before applying the plugin's `source` subdirectory. The distribution branch
+therefore contains no ZIP, MCPB, compressed archive extension, or disguised ZIP
+payload anywhere. Standalone skills and the Desktop fallback are published as
+GitHub Release assets, outside the Git tree.
 
 ## Free installation contract
 
@@ -134,8 +147,10 @@ tools. Disconnect or disable the unused path before testing another.
 Routine preparation uses `npm run prepare:claude-plugin-release`. Actual
 publication uses `npm run release:claude-plugin`, which clones the compatibility
 distribution repository, refuses changed content under an existing version,
-commits actual changes, pushes, and validates published downloads. Publication
-is not part of ordinary local validation.
+commits and pushes the archive-free snapshot, uploads immutable GitHub Release
+assets, and validates those published downloads. A staging branch can be chosen
+with `--distribution-git-branch`; staging runs use `--skip-release-assets` and
+`--skip-remote-verify`. Publication is not part of ordinary local validation.
 
 Platform statements were checked on 2026-07-16 against Anthropic's
 [custom skills guide](https://support.claude.com/en/articles/12512198-how-to-create-custom-skills),
